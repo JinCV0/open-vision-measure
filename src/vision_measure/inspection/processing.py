@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
+from typing import cast
 
 import cv2
 import numpy as np
@@ -56,4 +57,4 @@ def process_frame(frame: np.ndarray, settings: ImageSettings) -> np.ndarray:
 
     if result.ndim == 2:
         result = cv2.cvtColor(result, cv2.COLOR_GRAY2BGR)
-    return result
+    return cast(np.ndarray, result)

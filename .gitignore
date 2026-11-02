@@ -11,3 +11,5 @@ dist/
 *.ovm.json
 captures/
 measurements.csv
+ui-smoke*.png
+real-camera-smoke.png

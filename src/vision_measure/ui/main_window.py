@@ -39,6 +39,7 @@ class MainWindow(QMainWindow):
         workspace: Workspace | None = None,
         backend: OpenCvCameraBackend | None = None,
         parent: QWidget | None = None,
+        auto_discover: bool = True,
     ) -> None:
         super().__init__(parent)
         self.workspace = workspace or Workspace()
@@ -55,7 +56,8 @@ class MainWindow(QMainWindow):
         self._timer.setInterval(33)
         self._timer.timeout.connect(self._refresh_preview)
         self._timer.start()
-        QTimer.singleShot(0, self._refresh_cameras)
+        if auto_discover:
+            QTimer.singleShot(0, self._refresh_cameras)
 
     def _build_ui(self) -> None:
         central = QWidget(self)

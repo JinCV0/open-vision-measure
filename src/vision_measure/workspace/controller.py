@@ -135,8 +135,15 @@ class Workspace:
             raise ExportError("no frame is available")
         path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
-        if not cv2.imwrite(str(path), frame):
+        extension = path.suffix.lower()
+        image_format = ".jpg" if extension in {".jpg", ".jpeg"} else ".png"
+        encoded, buffer = cv2.imencode(image_format, frame)
+        if not encoded:
             raise ExportError(f"cannot write image: {path}")
+        try:
+            path.write_bytes(buffer.tobytes())
+        except OSError as exc:
+            raise ExportError(f"cannot write image: {path}") from exc
 
     def export_csv(self, path: Path) -> None:
         path = Path(path)

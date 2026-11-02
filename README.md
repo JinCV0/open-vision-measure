@@ -44,6 +44,16 @@ uv run pytest
 Synthetic-camera tests establish deterministic workflows. They do not prove
 compatibility with a specific physical camera or driver.
 
+## Build Windows executable
+
+```powershell
+pwsh -NoProfile -File scripts/build_windows.ps1 -Version 0.1.0
+```
+
+The command builds `OpenVisionMeasure.exe`, runs its packaged smoke test,
+calculates SHA-256, and creates a distributable ZIP under
+`release/0.1.0/windows-x64/`.
+
 ## Documents
 
 - [Core MVP design](docs/superpowers/specs/2026-11-02-open-vision-measure-design.md)

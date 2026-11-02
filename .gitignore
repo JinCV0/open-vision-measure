@@ -8,6 +8,7 @@ __pycache__/
 .worktrees/
 build/
 dist/
+release/
 *.ovm.json
 captures/
 measurements.csv

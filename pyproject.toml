@@ -46,3 +46,8 @@ python_version = "3.12"
 strict = true
 packages = ["vision_measure"]
 mypy_path = "src"
+
+[dependency-groups]
+dev = [
+    "pyinstaller>=6.22.3",
+]

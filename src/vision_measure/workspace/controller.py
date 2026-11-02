@@ -51,6 +51,10 @@ class Workspace:
     def latest_frame(self) -> FramePacket | None:
         return self._current
 
+    @property
+    def pump_error(self) -> Exception | None:
+        return None if self._pump is None else self._pump.last_error
+
     def attach_session(self, session: CameraSession) -> None:
         self.stop()
         self._session = session

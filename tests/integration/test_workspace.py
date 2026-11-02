@@ -9,6 +9,7 @@ def test_workspace_freeze_and_resume() -> None:
         CameraDevice(0, "synthetic"), CaptureConfig()
     )
     workspace.attach_session(session)
+    assert workspace.pump_error is None
     workspace.refresh_frame(timeout_s=1.0)
     frozen = workspace.refresh_frame(timeout_s=1.0)
     workspace.freeze()

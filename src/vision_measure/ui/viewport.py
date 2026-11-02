@@ -1,0 +1,126 @@
+from __future__ import annotations
+
+import cv2
+import numpy as np
+from PySide6.QtCore import QPointF, QRectF, Qt, Signal
+from PySide6.QtGui import QColor, QImage, QMouseEvent, QPainter, QPen
+from PySide6.QtWidgets import QWidget
+
+from vision_measure.inspection.models import Line, Point
+
+
+class ImageViewport(QWidget):
+    line_finished = Signal(object)
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self._image: QImage | None = None
+        self._lines: tuple[Line, ...] = ()
+        self._draw_start: Point | None = None
+        self._draw_current: Point | None = None
+        self.setMinimumSize(480, 320)
+        self.setMouseTracking(True)
+
+    def set_frame(self, frame: np.ndarray | None) -> None:
+        if frame is None:
+            self._image = None
+            self.update()
+            return
+        if frame.ndim != 3 or frame.shape[2] != 3:
+            raise ValueError("frame must be an HxWx3 BGR image")
+        rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        rgb = np.ascontiguousarray(rgb)
+        height, width = rgb.shape[:2]
+        self._image = QImage(
+            rgb.data,
+            width,
+            height,
+            int(rgb.strides[0]),
+            QImage.Format.Format_RGB888,
+        ).copy()
+        self.update()
+
+    def set_lines(self, lines: tuple[Line, ...]) -> None:
+        self._lines = lines
+        self.update()
+
+    def _target_rect(self) -> QRectF:
+        if self._image is None:
+            return QRectF()
+        image_width = self._image.width()
+        image_height = self._image.height()
+        scale = min(self.width() / image_width, self.height() / image_height)
+        width = image_width * scale
+        height = image_height * scale
+        return QRectF(
+            (self.width() - width) / 2,
+            (self.height() - height) / 2,
+            width,
+            height,
+        )
+
+    def widget_to_image(self, x: float, y: float) -> tuple[float, float] | None:
+        if self._image is None:
+            return None
+        target = self._target_rect()
+        if not target.contains(QPointF(x, y)):
+            return None
+        scale = target.width() / self._image.width()
+        image_x = (x - target.left()) / scale
+        image_y = (y - target.top()) / scale
+        return (image_x, image_y)
+
+    def _image_to_widget(self, point: Point) -> QPointF:
+        target = self._target_rect()
+        if self._image is None:
+            return QPointF()
+        scale = target.width() / self._image.width()
+        return QPointF(target.left() + point.x * scale, target.top() + point.y * scale)
+
+    def paintEvent(self, event: object) -> None:
+        del event
+        painter = QPainter(self)
+        painter.fillRect(self.rect(), QColor("#101418"))
+        if self._image is None:
+            return
+        target = self._target_rect()
+        painter.drawImage(target, self._image)
+        painter.setPen(QPen(QColor("#ff5d5d"), 2))
+        for line in self._lines:
+            painter.drawLine(
+                self._image_to_widget(line.start),
+                self._image_to_widget(line.end),
+            )
+        if self._draw_start is not None and self._draw_current is not None:
+            painter.setPen(QPen(QColor("#ffd166"), 1, Qt.PenStyle.DashLine))
+            painter.drawLine(
+                self._image_to_widget(self._draw_start),
+                self._image_to_widget(self._draw_current),
+            )
+
+    def mousePressEvent(self, event: QMouseEvent) -> None:
+        if event.button() != Qt.MouseButton.LeftButton:
+            return
+        position = event.position()
+        mapped = self.widget_to_image(position.x(), position.y())
+        if mapped is None:
+            return
+        point = Point(*mapped)
+        if self._draw_start is None:
+            self._draw_start = point
+            self._draw_current = point
+            self.update()
+            return
+        self.line_finished.emit(Line(self._draw_start, point))
+        self._draw_start = None
+        self._draw_current = None
+        self.update()
+
+    def mouseMoveEvent(self, event: QMouseEvent) -> None:
+        if self._draw_start is None:
+            return
+        position = event.position()
+        mapped = self.widget_to_image(position.x(), position.y())
+        if mapped is not None:
+            self._draw_current = Point(*mapped)
+            self.update()

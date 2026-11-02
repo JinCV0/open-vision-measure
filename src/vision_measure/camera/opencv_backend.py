@@ -77,17 +77,32 @@ class OpenCvCameraBackend:
         self._capture_factory = capture_factory
 
     def discover(self, api: CameraApi = CameraApi.AUTO) -> tuple[CameraDevice, ...]:
-        selected_api = api
-        if selected_api is CameraApi.AUTO:
-            selected_api = CameraApi.MSMF if sys.platform == "win32" else CameraApi.V4L2
-        return tuple(
-            CameraDevice(index=index, label=f"Camera {index}")
-            for index in range(self._max_devices)
-            if _probe_camera(index, selected_api)
+        candidates = (
+            (api,)
+            if api is not CameraApi.AUTO
+            else (
+                (CameraApi.MSMF, CameraApi.DSHOW)
+                if sys.platform == "win32"
+                else (CameraApi.V4L2,)
+            )
         )
+        devices: list[CameraDevice] = []
+        for index in range(self._max_devices):
+            for candidate in candidates:
+                if _probe_camera(index, candidate):
+                    devices.append(
+                        CameraDevice(
+                            index=index,
+                            label=f"Camera {index} ({candidate.value})",
+                            api=candidate,
+                        )
+                    )
+                    break
+        return tuple(devices)
 
     def open(self, device: CameraDevice, config: CaptureConfig) -> OpenCvCameraSession:
-        capture = self._capture_factory(device.index, config.api)
+        selected_api = config.api if config.api is not CameraApi.AUTO else device.api
+        capture = self._capture_factory(device.index, selected_api)
         if not capture.isOpened():
             capture.release()
             raise CameraUnavailable(f"cannot open camera {device.index}")

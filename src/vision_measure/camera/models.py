@@ -17,6 +17,7 @@ class CameraApi(StrEnum):
 class CameraDevice:
     index: int
     label: str
+    api: CameraApi = CameraApi.AUTO
 
 
 @dataclass(frozen=True, slots=True)

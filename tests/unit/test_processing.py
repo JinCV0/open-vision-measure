@@ -23,6 +23,19 @@ def test_grayscale_returns_three_channels() -> None:
     assert result.shape == (3, 4, 3)
 
 
+def test_warm_temperature_reduces_blue_and_increases_red() -> None:
+    frame = np.full((2, 2, 3), 100, dtype=np.uint8)
+    result = process_frame(frame, ImageSettings(temperature=100))
+    assert result[0, 0, 0] < 100
+    assert result[0, 0, 2] > 100
+
+
+def test_positive_tint_reduces_green_channel() -> None:
+    frame = np.full((2, 2, 3), 100, dtype=np.uint8)
+    result = process_frame(frame, ImageSettings(tint=100))
+    assert result[0, 0, 1] < 100
+
+
 def test_rejects_empty_frame() -> None:
     with pytest.raises(InvalidFrame):
         process_frame(np.empty((0, 0, 3), dtype=np.uint8), ImageSettings())

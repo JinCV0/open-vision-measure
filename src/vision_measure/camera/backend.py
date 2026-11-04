@@ -5,6 +5,7 @@ from typing import Protocol
 from vision_measure.camera.models import (
     CameraApi,
     CameraDevice,
+    CameraMode,
     CaptureConfig,
     FramePacket,
 )
@@ -19,6 +20,9 @@ class CameraReadTimeout(RuntimeError):
 
 
 class CameraSession(Protocol):
+    @property
+    def mode(self) -> CameraMode: ...
+
     def read_latest(self, timeout_s: float) -> FramePacket: ...
 
     def close(self) -> None: ...

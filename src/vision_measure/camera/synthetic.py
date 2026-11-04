@@ -9,6 +9,7 @@ from vision_measure.camera.backend import CameraUnavailable
 from vision_measure.camera.models import (
     CameraApi,
     CameraDevice,
+    CameraMode,
     CaptureConfig,
     FramePacket,
 )
@@ -20,6 +21,10 @@ class SyntheticCameraSession:
         self._sequence = 0
         self._closed = False
         self._lock = threading.Lock()
+
+    @property
+    def mode(self) -> CameraMode:
+        return CameraMode(self._width, self._height, 30.0, "RGB ")
 
     def read_latest(self, timeout_s: float) -> FramePacket:
         if timeout_s < 0:

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "open-vision-measure"
-version = "0.1.0"
+version = "0.2.0"
 description = "Local-first camera inspection and measurement workbench"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"

@@ -5,13 +5,16 @@ from dataclasses import replace
 from enum import StrEnum
 from pathlib import Path
 
-import cv2
 import numpy as np
 
 from vision_measure.camera.backend import CameraSession
 from vision_measure.camera.buffer import LatestFrameBuffer
 from vision_measure.camera.models import FramePacket
 from vision_measure.camera.pump import FramePump
+from vision_measure.inspection.annotations import (
+    DEFAULT_SCALE_BAR_POSITION,
+    NormalizedPoint,
+)
 from vision_measure.inspection.calibration import measure_line
 from vision_measure.inspection.models import (
     Calibration,
@@ -22,6 +25,7 @@ from vision_measure.inspection.models import (
 from vision_measure.inspection.processing import ImageSettings, process_frame
 from vision_measure.workspace.models import ProjectDocument
 from vision_measure.workspace.project import load_project, save_project
+from vision_measure.workspace.screenshot import ScreenshotError, save_capture
 
 
 class WorkspaceState(StrEnum):
@@ -129,20 +133,24 @@ class Workspace:
     def load_project(self, path: Path) -> None:
         self.projects = load_project(path)
 
-    def save_display_frame(self, path: Path) -> None:
+    def save_display_frame(
+        self,
+        path: Path,
+        scale_bar_enabled: bool = False,
+        scale_bar_position: NormalizedPoint = DEFAULT_SCALE_BAR_POSITION,
+    ) -> None:
         frame = self.display_frame
         if frame is None:
             raise ExportError("no frame is available")
-        path = Path(path)
-        path.parent.mkdir(parents=True, exist_ok=True)
-        extension = path.suffix.lower()
-        image_format = ".jpg" if extension in {".jpg", ".jpeg"} else ".png"
-        encoded, buffer = cv2.imencode(image_format, frame)
-        if not encoded:
-            raise ExportError(f"cannot write image: {path}")
         try:
-            path.write_bytes(buffer.tobytes())
-        except OSError as exc:
+            save_capture(
+                frame,
+                Path(path),
+                calibration=self.projects.calibration,
+                scale_bar_enabled=scale_bar_enabled,
+                scale_bar_position=scale_bar_position,
+            )
+        except ScreenshotError as exc:
             raise ExportError(f"cannot write image: {path}") from exc
 
     def export_csv(self, path: Path) -> None:

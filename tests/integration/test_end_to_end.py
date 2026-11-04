@@ -4,6 +4,7 @@ import pytest
 
 from vision_measure.camera.models import CameraDevice, CaptureConfig
 from vision_measure.camera.synthetic import SyntheticCameraBackend
+from vision_measure.inspection.annotations import NormalizedPoint
 from vision_measure.inspection.models import Line, Point, Unit
 from vision_measure.workspace.controller import Workspace
 
@@ -24,7 +25,11 @@ def test_capture_calibrate_save_load_export(tmp_path: Path) -> None:
     csv_path = tmp_path / "measurements.csv"
     screenshot = tmp_path / "截图.png"
     workspace.save_project(project)
-    workspace.save_display_frame(screenshot)
+    workspace.save_display_frame(
+        screenshot,
+        scale_bar_enabled=True,
+        scale_bar_position=NormalizedPoint(0.2, 0.7),
+    )
     workspace.export_csv(csv_path)
 
     loaded = Workspace()

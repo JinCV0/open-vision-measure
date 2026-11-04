@@ -16,6 +16,8 @@ class InvalidFrame(ValueError):
 class ImageSettings:
     brightness: float = 0.0
     contrast: float = 1.0
+    temperature: float = 0.0
+    tint: float = 0.0
     grayscale: bool = False
     canny: bool = False
     canny_low: int = 50
@@ -26,6 +28,10 @@ class ImageSettings:
             raise ValueError("brightness must be finite and between -255 and 255")
         if not math.isfinite(self.contrast) or not 0.1 <= self.contrast <= 4.0:
             raise ValueError("contrast must be finite and between 0.1 and 4.0")
+        if not math.isfinite(self.temperature) or not -100 <= self.temperature <= 100:
+            raise ValueError("temperature must be finite and between -100 and 100")
+        if not math.isfinite(self.tint) or not -100 <= self.tint <= 100:
+            raise ValueError("tint must be finite and between -100 and 100")
         if not 0 <= self.canny_low < self.canny_high <= 255:
             raise ValueError("Canny thresholds must satisfy 0 <= low < high <= 255")
 
@@ -44,7 +50,18 @@ def _validate_frame(frame: np.ndarray) -> None:
 
 def process_frame(frame: np.ndarray, settings: ImageSettings) -> np.ndarray:
     _validate_frame(frame)
-    adjusted = (frame.astype(np.float32) - 127.5) * settings.contrast
+    temperature = settings.temperature / 100.0
+    tint = settings.tint / 100.0
+    channel_gains = np.array(
+        [
+            1.0 - 0.25 * temperature + 0.10 * tint,
+            1.0 - 0.20 * tint,
+            1.0 + 0.25 * temperature + 0.10 * tint,
+        ],
+        dtype=np.float32,
+    )
+    balanced = frame.astype(np.float32) * channel_gains
+    adjusted = (balanced - 127.5) * settings.contrast
     adjusted += 127.5 + settings.brightness
     result = np.clip(adjusted, 0, 255).astype(np.uint8)
 

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import csv
 from dataclasses import replace
+from datetime import UTC, datetime
 from enum import StrEnum
 from pathlib import Path
 
@@ -17,13 +18,15 @@ from vision_measure.inspection.annotations import (
 )
 from vision_measure.inspection.calibration import measure_line
 from vision_measure.inspection.models import (
+    DEFAULT_MAGNIFICATION_NAME,
     Calibration,
     Line,
     LineMeasurement,
+    MagnificationProfile,
     Unit,
 )
 from vision_measure.inspection.processing import ImageSettings, process_frame
-from vision_measure.workspace.models import ProjectDocument
+from vision_measure.workspace.models import MeasurementRecord, ProjectDocument
 from vision_measure.workspace.project import load_project, save_project
 from vision_measure.workspace.screenshot import ScreenshotError, save_capture
 
@@ -40,7 +43,10 @@ class ExportError(RuntimeError):
 
 class Workspace:
     def __init__(self) -> None:
-        self.projects = ProjectDocument()
+        self.projects = ProjectDocument(
+            magnifications=(MagnificationProfile(name=DEFAULT_MAGNIFICATION_NAME),),
+            current_magnification=DEFAULT_MAGNIFICATION_NAME,
+        )
         self.state = WorkspaceState.IDLE
         self._session: CameraSession | None = None
         self._buffer: LatestFrameBuffer | None = None
@@ -52,12 +58,53 @@ class Workspace:
         return self.projects
 
     @property
+    def records(self) -> tuple[MeasurementRecord, ...]:
+        return self.projects.records
+
+    @property
+    def lines(self) -> tuple[Line, ...]:
+        return tuple(record.line for record in self.projects.records)
+
+    @property
+    def current_magnification(self) -> str | None:
+        return self.projects.current_magnification
+
+    @property
     def latest_frame(self) -> FramePacket | None:
         return self._current
 
     @property
     def pump_error(self) -> Exception | None:
         return None if self._pump is None else self._pump.last_error
+
+    def _profile(self, name: str | None) -> MagnificationProfile | None:
+        for profile in self.projects.magnifications:
+            if profile.name == name:
+                return profile
+        return None
+
+    def _measure(self, record: MeasurementRecord) -> LineMeasurement:
+        profile = self._profile(record.magnification)
+        calibration = (
+            profile.calibration
+            if profile is not None and profile.calibration is not None
+            else Calibration(1.0, Unit.PX)
+        )
+        return measure_line(record.line, calibration)
+
+    @property
+    def current_calibration(self) -> Calibration | None:
+        profile = self._profile(self.projects.current_magnification)
+        return None if profile is None else profile.calibration
+
+    @property
+    def current_unit(self) -> Unit:
+        calibration = self.current_calibration
+        return calibration.unit if calibration is not None else Unit.MM
+
+    @property
+    def measurements(self) -> tuple[LineMeasurement, ...]:
+        return tuple(self._measure(record) for record in self.projects.records)
 
     def attach_session(self, session: CameraSession) -> None:
         self.stop()
@@ -103,29 +150,61 @@ class Workspace:
     def set_image_settings(self, settings: ImageSettings) -> None:
         self.projects = replace(self.projects, image_settings=settings)
 
-    def set_calibration(self, calibration: Calibration) -> None:
+    def set_magnification(self, name: str) -> None:
+        if self._profile(name) is None:
+            self.projects = replace(
+                self.projects,
+                magnifications=(*self.projects.magnifications, MagnificationProfile(name=name)),
+            )
+        self.projects = replace(self.projects, current_magnification=name)
+
+    def set_calibration(
+        self,
+        profile_name: str,
+        calibration: Calibration,
+        calibrated_at: str | None = None,
+        reference_length: float | None = None,
+    ) -> None:
+        if self._profile(profile_name) is None:
+            raise ValueError(f"unknown magnification: {profile_name}")
         self.projects = replace(
             self.projects,
-            calibration=calibration,
-            unit=calibration.unit,
+            magnifications=tuple(
+                replace(
+                    profile,
+                    calibration=calibration,
+                    calibrated_at=calibrated_at,
+                    reference_length=reference_length,
+                )
+                if profile.name == profile_name
+                else profile
+                for profile in self.projects.magnifications
+            ),
         )
 
     def set_reference(self, line: Line, physical_length: float, unit: Unit) -> None:
+        name = self.projects.current_magnification
+        if name is None:
+            self.set_magnification(DEFAULT_MAGNIFICATION_NAME)
+            name = DEFAULT_MAGNIFICATION_NAME
         self.set_calibration(
-            Calibration.from_reference(line, physical_length=physical_length, unit=unit)
+            name,
+            Calibration.from_reference(line, physical_length=physical_length, unit=unit),
+            calibrated_at=datetime.now(UTC).isoformat(),
+            reference_length=physical_length,
         )
 
     def add_line(self, line: Line) -> LineMeasurement:
+        name = self.projects.current_magnification
+        if name is None:
+            self.set_magnification(DEFAULT_MAGNIFICATION_NAME)
+            name = DEFAULT_MAGNIFICATION_NAME
+        record = MeasurementRecord(line, name)
         self.projects = replace(
             self.projects,
-            lines=(*self.projects.lines, line),
+            records=(*self.projects.records, record),
         )
-        return self.measurements[-1]
-
-    @property
-    def measurements(self) -> tuple[LineMeasurement, ...]:
-        calibration = self.projects.calibration or Calibration(1.0, Unit.PX)
-        return tuple(measure_line(line, calibration) for line in self.projects.lines)
+        return self._measure(record)
 
     def save_project(self, path: Path) -> None:
         save_project(path, self.projects)
@@ -146,7 +225,7 @@ class Workspace:
             save_capture(
                 frame,
                 Path(path),
-                calibration=self.projects.calibration,
+                calibration=self.current_calibration,
                 scale_bar_enabled=scale_bar_enabled,
                 scale_bar_position=scale_bar_position,
             )
@@ -162,6 +241,7 @@ class Workspace:
                 writer.writerow(
                     (
                         "index",
+                        "magnification",
                         "start_x",
                         "start_y",
                         "end_x",
@@ -171,11 +251,13 @@ class Workspace:
                         "unit",
                     )
                 )
-                for index, measurement in enumerate(self.measurements, start=1):
-                    line = measurement.source
+                for index, record in enumerate(self.projects.records, start=1):
+                    measurement = self._measure(record)
+                    line = record.line
                     writer.writerow(
                         (
                             index,
+                            record.magnification,
                             line.start.x,
                             line.start.y,
                             line.end.x,

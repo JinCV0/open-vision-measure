@@ -190,7 +190,7 @@ class MainWindow(QMainWindow):
         frame = self.workspace.display_frame
         if frame is not None:
             self.viewport.set_frame(frame)
-        self.viewport.set_lines(self.workspace.project.lines)
+        self.viewport.set_lines(self.workspace.lines)
         pump_error = self.workspace.pump_error
         if pump_error is not None and pump_error is not self._last_pump_error:
             self._last_pump_error = pump_error
@@ -208,15 +208,15 @@ class MainWindow(QMainWindow):
         except Exception as exc:
             self._show_error(str(exc))
             return
-        self.viewport.set_lines(self.workspace.project.lines)
+        self.viewport.set_lines(self.workspace.lines)
 
     def _calibrate(self) -> None:
-        if not self.workspace.project.lines:
+        if not self.workspace.lines:
             self._show_error("Draw a reference line first")
             return
         try:
             self.workspace.set_reference(
-                self.workspace.project.lines[-1],
+                self.workspace.lines[-1],
                 self.measurement_panel.reference_length_spin.value(),
                 self.measurement_panel.selected_unit(),
             )
@@ -259,7 +259,7 @@ class MainWindow(QMainWindow):
                 path,
                 scale_bar_enabled=(
                     preferences.scale_bar_enabled
-                    and self.workspace.project.calibration is not None
+                    and self.workspace.current_calibration is not None
                 ),
                 scale_bar_position=preferences.scale_bar_position,
             )
@@ -309,14 +309,14 @@ class MainWindow(QMainWindow):
         try:
             self.workspace.load_project(Path(path))
             self._sync_controls_from_project()
-            self.viewport.set_lines(self.workspace.project.lines)
+            self.viewport.set_lines(self.workspace.lines)
             self._sync_scale_bar_overlay()
         except Exception as exc:
             self._show_error(str(exc))
 
     def _sync_controls_from_project(self) -> None:
         self.image_panel.set_settings(self.workspace.project.image_settings)
-        self.measurement_panel.set_unit(self.workspace.project.unit)
+        self.measurement_panel.set_unit(self.workspace.current_unit)
 
     def _load_preferences(self) -> AppPreferences:
         try:
@@ -356,7 +356,7 @@ class MainWindow(QMainWindow):
         )
 
     def _sync_scale_bar_overlay(self) -> None:
-        calibration = self.workspace.project.calibration
+        calibration = self.workspace.current_calibration
         self.measurement_panel.set_calibration_available(calibration is not None)
         self.measurement_panel.scale_bar_box.blockSignals(True)
         self.measurement_panel.scale_bar_box.setChecked(

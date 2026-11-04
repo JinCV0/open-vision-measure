@@ -36,5 +36,5 @@ def test_capture_calibrate_save_load_export(tmp_path: Path) -> None:
     loaded.load_project(project)
     assert screenshot.is_file()
     assert "physical_length" in csv_path.read_text(encoding="utf-8")
-    assert len(loaded.project.lines) == 1
+    assert len(loaded.records) == 1
     workspace.stop()

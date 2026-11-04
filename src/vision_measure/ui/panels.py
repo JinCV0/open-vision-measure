@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from PySide6.QtCore import Signal
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -10,6 +10,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QPushButton,
+    QSlider,
     QSpinBox,
     QVBoxLayout,
     QWidget,
@@ -105,43 +106,95 @@ class CameraControlBar(QWidget):
 class ImagePanel(QGroupBox):
     settings_changed = Signal()
     screenshot_requested = Signal()
+    folder_requested = Signal()
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__("Image", parent)
         form = QFormLayout(self)
-        self.brightness_spin = QDoubleSpinBox()
-        self.brightness_spin.setRange(-255, 255)
-        self.contrast_spin = QDoubleSpinBox()
-        self.contrast_spin.setRange(0.1, 4.0)
-        self.contrast_spin.setSingleStep(0.05)
-        self.contrast_spin.setValue(1.0)
+        self.brightness_slider = QSlider(Qt.Orientation.Horizontal)
+        self.brightness_slider.setRange(-100, 100)
+        self.brightness_value = QLabel("0")
+        self.contrast_slider = QSlider(Qt.Orientation.Horizontal)
+        self.contrast_slider.setRange(50, 200)
+        self.contrast_slider.setValue(100)
+        self.contrast_value = QLabel("100%")
+        self.temperature_slider = QSlider(Qt.Orientation.Horizontal)
+        self.temperature_slider.setRange(-100, 100)
+        self.temperature_value = QLabel("0")
+        self.tint_slider = QSlider(Qt.Orientation.Horizontal)
+        self.tint_slider.setRange(-100, 100)
+        self.tint_value = QLabel("0")
         self.gray_box = QCheckBox("Grayscale")
         self.canny_box = QCheckBox("Edges")
         self.screenshot_button = QPushButton("Save screenshot")
-        form.addRow("Brightness", self.brightness_spin)
-        form.addRow("Contrast", self.contrast_spin)
+        self.folder_button = QPushButton("Folder")
+        form.addRow("Brightness", self._slider_row(self.brightness_slider, self.brightness_value))
+        form.addRow("Contrast", self._slider_row(self.contrast_slider, self.contrast_value))
+        form.addRow(
+            "Temperature",
+            self._slider_row(self.temperature_slider, self.temperature_value),
+        )
+        form.addRow("Tint", self._slider_row(self.tint_slider, self.tint_value))
         form.addRow(self.gray_box)
         form.addRow(self.canny_box)
-        form.addRow(self.screenshot_button)
-        self.brightness_spin.valueChanged.connect(self.settings_changed.emit)
-        self.contrast_spin.valueChanged.connect(self.settings_changed.emit)
+        screenshot_row = QHBoxLayout()
+        screenshot_row.addWidget(self.screenshot_button)
+        screenshot_row.addWidget(self.folder_button)
+        form.addRow(screenshot_row)
+        self.brightness_slider.valueChanged.connect(self._values_changed)
+        self.contrast_slider.valueChanged.connect(self._values_changed)
+        self.temperature_slider.valueChanged.connect(self._values_changed)
+        self.tint_slider.valueChanged.connect(self._values_changed)
         self.gray_box.toggled.connect(self.settings_changed.emit)
         self.canny_box.toggled.connect(self.settings_changed.emit)
         self.screenshot_button.clicked.connect(self.screenshot_requested.emit)
+        self.folder_button.clicked.connect(self.folder_requested.emit)
+
+    @staticmethod
+    def _slider_row(slider: QSlider, value: QLabel) -> QHBoxLayout:
+        row = QHBoxLayout()
+        row.addWidget(slider, 1)
+        value.setMinimumWidth(44)
+        row.addWidget(value)
+        return row
+
+    def _values_changed(self) -> None:
+        self.brightness_value.setText(f"{self.brightness_slider.value():+d}")
+        self.contrast_value.setText(f"{self.contrast_slider.value()}%")
+        self.temperature_value.setText(f"{self.temperature_slider.value():+d}")
+        self.tint_value.setText(f"{self.tint_slider.value():+d}")
+        self.settings_changed.emit()
 
     def settings(self) -> ImageSettings:
         return ImageSettings(
-            brightness=self.brightness_spin.value(),
-            contrast=self.contrast_spin.value(),
+            brightness=self.brightness_slider.value() * 2.55,
+            contrast=self.contrast_slider.value() / 100.0,
+            temperature=float(self.temperature_slider.value()),
+            tint=float(self.tint_slider.value()),
             grayscale=self.gray_box.isChecked(),
             canny=self.canny_box.isChecked(),
         )
 
     def set_settings(self, settings: ImageSettings) -> None:
-        self.brightness_spin.setValue(settings.brightness)
-        self.contrast_spin.setValue(settings.contrast)
+        controls = (
+            self.brightness_slider,
+            self.contrast_slider,
+            self.temperature_slider,
+            self.tint_slider,
+            self.gray_box,
+            self.canny_box,
+        )
+        for control in controls:
+            control.blockSignals(True)
+        self.brightness_slider.setValue(round(settings.brightness / 2.55))
+        self.contrast_slider.setValue(round(settings.contrast * 100))
+        self.temperature_slider.setValue(round(settings.temperature))
+        self.tint_slider.setValue(round(settings.tint))
         self.gray_box.setChecked(settings.grayscale)
         self.canny_box.setChecked(settings.canny)
+        for control in controls:
+            control.blockSignals(False)
+        self._values_changed()
 
 
 class MeasurementPanel(QGroupBox):
@@ -158,8 +211,11 @@ class MeasurementPanel(QGroupBox):
         for unit in (Unit.MM, Unit.CM, Unit.IN, Unit.PX):
             self.unit_combo.addItem(unit.value, unit)
         self.calibrate_button = QPushButton("Calibrate last line")
+        self.scale_bar_box = QCheckBox("Scale bar")
+        self.scale_bar_box.setEnabled(False)
         form.addRow("Known length", self.reference_length_spin)
         form.addRow("Unit", self.unit_combo)
+        form.addRow(self.scale_bar_box)
         form.addRow(self.calibrate_button)
         self.calibrate_button.clicked.connect(self.calibrate_requested.emit)
 
@@ -171,6 +227,9 @@ class MeasurementPanel(QGroupBox):
         index = self.unit_combo.findData(unit)
         if index >= 0:
             self.unit_combo.setCurrentIndex(index)
+
+    def set_calibration_available(self, available: bool) -> None:
+        self.scale_bar_box.setEnabled(available)
 
 
 class ProjectPanel(QGroupBox):

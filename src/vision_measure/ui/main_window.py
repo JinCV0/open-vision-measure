@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import QTimer
+from PySide6.QtCore import QStandardPaths, QTimer
 from PySide6.QtGui import QCloseEvent
 from PySide6.QtWidgets import (
     QFileDialog,
@@ -18,6 +18,7 @@ from PySide6.QtWidgets import (
 from vision_measure.camera.backend import CameraSession
 from vision_measure.camera.models import CameraDevice
 from vision_measure.camera.opencv_backend import OpenCvCameraBackend
+from vision_measure.inspection.annotations import NormalizedPoint
 from vision_measure.inspection.models import Line, LineMeasurement
 from vision_measure.ui.camera_tasks import CameraDiscoveryThread, CameraOpenThread
 from vision_measure.ui.panels import (
@@ -27,7 +28,14 @@ from vision_measure.ui.panels import (
     ProjectPanel,
 )
 from vision_measure.ui.viewport import ImageViewport
-from vision_measure.workspace.controller import Workspace, WorkspaceState
+from vision_measure.workspace.controller import ExportError, Workspace, WorkspaceState
+from vision_measure.workspace.preferences import (
+    AppPreferences,
+    PreferencesFormatError,
+    PreferencesStore,
+    default_preferences_path,
+)
+from vision_measure.workspace.screenshot import next_capture_path
 
 
 class MainWindow(QMainWindow):
@@ -37,6 +45,7 @@ class MainWindow(QMainWindow):
         backend: OpenCvCameraBackend | None = None,
         parent: QWidget | None = None,
         auto_discover: bool = True,
+        preferences_store: PreferencesStore | None = None,
     ) -> None:
         super().__init__(parent)
         self.workspace = workspace or Workspace()
@@ -44,10 +53,16 @@ class MainWindow(QMainWindow):
         self._discovery_thread: CameraDiscoveryThread | None = None
         self._open_thread: CameraOpenThread | None = None
         self._last_pump_error: Exception | None = None
+        self._preferences_store = preferences_store or PreferencesStore(
+            default_preferences_path()
+        )
+        self.preferences = self._load_preferences()
         self.setWindowTitle("Open Vision Measure")
         self.resize(1440, 900)
         self._build_ui()
         self._connect_events()
+        self.image_panel.set_settings(self.workspace.project.image_settings)
+        self._sync_scale_bar_overlay()
         self._timer = QTimer(self)
         self._timer.setInterval(33)
         self._timer.timeout.connect(self._refresh_preview)
@@ -97,8 +112,13 @@ class MainWindow(QMainWindow):
         self.camera_bar.freeze_requested.connect(self._toggle_freeze)
         self.image_panel.settings_changed.connect(self._apply_image_settings)
         self.image_panel.screenshot_requested.connect(self._save_screenshot)
+        self.image_panel.folder_requested.connect(self._choose_screenshot_folder)
         self.viewport.line_finished.connect(self._add_line)
         self.measurement_panel.calibrate_requested.connect(self._calibrate)
+        self.measurement_panel.scale_bar_box.toggled.connect(
+            self._scale_bar_toggled
+        )
+        self.viewport.scale_bar_moved.connect(self._scale_bar_moved)
         self.project_panel.save_requested.connect(self._save_project)
         self.project_panel.load_requested.connect(self._load_project)
         self.project_panel.export_requested.connect(self._export_csv)
@@ -221,6 +241,7 @@ class MainWindow(QMainWindow):
                 self.measurement_panel.selected_unit(),
             )
             self._rebuild_measurement_table()
+            self._sync_scale_bar_overlay()
         except Exception as exc:
             self._show_error(str(exc))
 
@@ -230,15 +251,69 @@ class MainWindow(QMainWindow):
             self._append_measurement(measurement)
 
     def _save_screenshot(self) -> None:
-        path, _ = QFileDialog.getSaveFileName(
-            self, "Save screenshot", "capture.png", "Images (*.png *.jpg *.jpeg)"
-        )
-        if not path:
-            return
+        preferences = self.preferences
+        if preferences.screenshot_directory is None:
+            pictures = QStandardPaths.writableLocation(
+                QStandardPaths.StandardLocation.PicturesLocation
+            )
+            suggested = Path(pictures) / "OpenVisionMeasure" / "capture_0001.png"
+            selected, _ = QFileDialog.getSaveFileName(
+                self,
+                "Save screenshot",
+                str(suggested),
+                "Images (*.png *.jpg *.jpeg)",
+            )
+            if not selected:
+                return
+            selected_path = Path(selected)
+            if not selected_path.suffix:
+                selected_path = selected_path.with_suffix(".png")
+            preferences = AppPreferences(
+                screenshot_directory=selected_path.parent,
+                screenshot_extension=selected_path.suffix or ".png",
+                scale_bar_enabled=preferences.scale_bar_enabled,
+                scale_bar_position=preferences.scale_bar_position,
+            )
+            path = selected_path
+        else:
+            path = next_capture_path(
+                preferences.screenshot_directory,
+                preferences.screenshot_extension,
+            )
         try:
-            self.workspace.save_display_frame(Path(path))
-        except Exception as exc:
+            self.workspace.save_display_frame(
+                path,
+                scale_bar_enabled=(
+                    preferences.scale_bar_enabled
+                    and self.workspace.project.calibration is not None
+                ),
+                scale_bar_position=preferences.scale_bar_position,
+            )
+            self._set_preferences(preferences)
+            self.statusBar().showMessage(f"Saved {path}")
+        except (ExportError, ValueError) as exc:
             self._show_error(str(exc))
+
+    def _choose_screenshot_folder(self) -> None:
+        start = (
+            str(self.preferences.screenshot_directory)
+            if self.preferences.screenshot_directory is not None
+            else ""
+        )
+        selected = QFileDialog.getExistingDirectory(
+            self,
+            "Choose screenshot folder",
+            start,
+        )
+        if selected:
+            self._set_preferences(
+                AppPreferences(
+                    screenshot_directory=Path(selected),
+                    screenshot_extension=self.preferences.screenshot_extension,
+                    scale_bar_enabled=self.preferences.scale_bar_enabled,
+                    scale_bar_position=self.preferences.scale_bar_position,
+                )
+            )
 
     def _save_project(self) -> None:
         path, _ = QFileDialog.getSaveFileName(
@@ -262,12 +337,64 @@ class MainWindow(QMainWindow):
             self._sync_controls_from_project()
             self._rebuild_measurement_table()
             self.viewport.set_lines(self.workspace.project.lines)
+            self._sync_scale_bar_overlay()
         except Exception as exc:
             self._show_error(str(exc))
 
     def _sync_controls_from_project(self) -> None:
         self.image_panel.set_settings(self.workspace.project.image_settings)
         self.measurement_panel.set_unit(self.workspace.project.unit)
+
+    def _load_preferences(self) -> AppPreferences:
+        try:
+            return self._preferences_store.load()
+        except PreferencesFormatError:
+            return AppPreferences()
+
+    def _set_preferences(self, preferences: AppPreferences) -> None:
+        try:
+            self._preferences_store.save(preferences)
+        except PreferencesFormatError as exc:
+            self._show_error(str(exc))
+            return
+        self.preferences = preferences
+
+    def _scale_bar_toggled(self, enabled: bool) -> None:
+        self._set_preferences(
+            AppPreferences(
+                screenshot_directory=self.preferences.screenshot_directory,
+                screenshot_extension=self.preferences.screenshot_extension,
+                scale_bar_enabled=enabled,
+                scale_bar_position=self.preferences.scale_bar_position,
+            )
+        )
+        self._sync_scale_bar_overlay()
+
+    def _scale_bar_moved(self, position: object) -> None:
+        if not isinstance(position, NormalizedPoint):
+            return
+        self._set_preferences(
+            AppPreferences(
+                screenshot_directory=self.preferences.screenshot_directory,
+                screenshot_extension=self.preferences.screenshot_extension,
+                scale_bar_enabled=self.preferences.scale_bar_enabled,
+                scale_bar_position=position,
+            )
+        )
+
+    def _sync_scale_bar_overlay(self) -> None:
+        calibration = self.workspace.project.calibration
+        self.measurement_panel.set_calibration_available(calibration is not None)
+        self.measurement_panel.scale_bar_box.blockSignals(True)
+        self.measurement_panel.scale_bar_box.setChecked(
+            self.preferences.scale_bar_enabled and calibration is not None
+        )
+        self.measurement_panel.scale_bar_box.blockSignals(False)
+        self.viewport.set_scale_bar(
+            calibration,
+            self.preferences.scale_bar_enabled and calibration is not None,
+            self.preferences.scale_bar_position,
+        )
 
     def _export_csv(self) -> None:
         path, _ = QFileDialog.getSaveFileName(

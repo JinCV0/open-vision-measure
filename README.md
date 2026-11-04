@@ -10,9 +10,11 @@ models from JCameraPro.
 - Camera discovery through MSMF, DirectShow, or V4L2 with automatic fallback.
 - Bounded, non-blocking camera acquisition.
 - Live preview, freeze/resume, stop, and screenshot export.
-- Brightness, contrast, grayscale, and edge preview.
+- Brightness, contrast, temperature, tint, grayscale, and edge preview.
 - Two-click line measurement in image coordinates.
 - Physical calibration from a known reference length.
+- Optional draggable academic-style scale bar in live and saved images.
+- Persistent screenshot folder with automatic `capture_0001` sequencing.
 - Project save/load and CSV measurement export.
 - Unicode Windows paths for screenshots and project files.
 
@@ -47,12 +49,12 @@ compatibility with a specific physical camera or driver.
 ## Build Windows executable
 
 ```powershell
-pwsh -NoProfile -File scripts/build_windows.ps1 -Version 0.1.0
+pwsh -NoProfile -File scripts/build_windows.ps1 -Version 0.2.0
 ```
 
 The command builds `OpenVisionMeasure.exe`, runs its packaged smoke test,
 calculates SHA-256, and creates a distributable ZIP under
-`release/0.1.0/windows-x64/`.
+`release/0.2.0/windows-x64/`.
 
 ## Documents
 

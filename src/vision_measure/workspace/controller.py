@@ -10,7 +10,7 @@ import numpy as np
 
 from vision_measure.camera.backend import CameraSession
 from vision_measure.camera.buffer import LatestFrameBuffer
-from vision_measure.camera.models import FramePacket
+from vision_measure.camera.models import CaptureConfig, FramePacket
 from vision_measure.camera.pump import FramePump
 from vision_measure.inspection.annotations import (
     DEFAULT_SCALE_BAR_POSITION,
@@ -52,6 +52,7 @@ class Workspace:
         self._buffer: LatestFrameBuffer | None = None
         self._pump: FramePump | None = None
         self._current: FramePacket | None = None
+        self._calibration_configs: dict[str, CaptureConfig | None] = {}
 
     @property
     def project(self) -> ProjectDocument:
@@ -164,6 +165,7 @@ class Workspace:
         calibration: Calibration,
         calibrated_at: str | None = None,
         reference_length: float | None = None,
+        capture_config: CaptureConfig | None = None,
     ) -> None:
         if self._profile(profile_name) is None:
             raise ValueError(f"unknown magnification: {profile_name}")
@@ -181,6 +183,27 @@ class Workspace:
                 for profile in self.projects.magnifications
             ),
         )
+        self._calibration_configs[profile_name] = capture_config
+
+    def _clear_calibration(self, profile_name: str) -> None:
+        self.projects = replace(
+            self.projects,
+            magnifications=tuple(
+                replace(profile, calibration=None, calibrated_at=None, reference_length=None)
+                if profile.name == profile_name
+                else profile
+                for profile in self.projects.magnifications
+            ),
+        )
+
+    def on_camera_changed(self, capture_config: CaptureConfig) -> None:
+        name = self.projects.current_magnification
+        if name is None:
+            return
+        previous = self._calibration_configs.get(name)
+        if previous != capture_config:
+            self._clear_calibration(name)
+        self._calibration_configs[name] = capture_config
 
     def set_reference(self, line: Line, physical_length: float, unit: Unit) -> None:
         name = self.projects.current_magnification

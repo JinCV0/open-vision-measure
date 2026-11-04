@@ -75,3 +75,25 @@ class LineMeasurement:
     pixel_length: float
     physical_length: float
     unit: Unit
+
+
+DEFAULT_MAGNIFICATION_NAME = "default"
+
+
+@dataclass(frozen=True, slots=True)
+class MagnificationProfile:
+    name: str
+    calibration: Calibration | None = None
+    calibrated_at: str | None = None
+    reference_length: float | None = None
+    scale_bar_length: float | None = None
+
+    def __post_init__(self) -> None:
+        if not self.name.strip():
+            raise ValueError("magnification name must not be empty")
+        for label, value in (
+            ("reference_length", self.reference_length),
+            ("scale_bar_length", self.scale_bar_length),
+        ):
+            if value is not None and (not math.isfinite(value) or value <= 0):
+                raise ValueError(f"{label} must be finite and positive")

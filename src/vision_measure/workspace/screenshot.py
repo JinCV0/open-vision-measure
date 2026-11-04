@@ -46,6 +46,7 @@ def save_capture(
     calibration: Calibration | None = None,
     scale_bar_enabled: bool = False,
     scale_bar_position: NormalizedPoint = DEFAULT_SCALE_BAR_POSITION,
+    scale_bar_length: float | None = None,
 ) -> Path:
     if image.ndim != 3 or image.shape[2] != 3:
         raise ScreenshotError("image must be an HxWx3 BGR image")
@@ -53,7 +54,12 @@ def save_capture(
     if scale_bar_enabled:
         if calibration is None:
             raise ScreenshotError("scale bar requires calibration")
-        rendered = draw_scale_bar(image, calibration, scale_bar_position)
+        rendered = draw_scale_bar(
+            image,
+            calibration,
+            scale_bar_position,
+            fixed_length=scale_bar_length,
+        )
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     extension = path.suffix.lower()

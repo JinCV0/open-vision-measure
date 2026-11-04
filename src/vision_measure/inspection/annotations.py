@@ -29,7 +29,12 @@ class ScaleBarGeometry:
     start: Point
     end: Point
     label: str
+    pixel_length: float
     tick_pixels: int = 12
+
+
+class ScaleBarTooLong(ValueError):
+    pass
 
 
 def _nice_length(maximum: float) -> float:
@@ -70,6 +75,32 @@ def build_scale_bar(
         start=Point(x, y),
         end=Point(x + bar_pixels, y),
         label=_format_length(length, calibration.unit.value),
+        pixel_length=bar_pixels,
+    )
+
+
+def build_scale_bar_fixed(
+    image_width: int,
+    image_height: int,
+    calibration: Calibration,
+    length: float,
+    position: NormalizedPoint = DEFAULT_SCALE_BAR_POSITION,
+) -> ScaleBarGeometry:
+    if image_width <= 0 or image_height <= 0:
+        raise ValueError("image dimensions must be positive")
+    if not math.isfinite(length) or length <= 0:
+        raise ValueError("fixed scale bar length must be finite and positive")
+    bar_pixels = calibration.unit_to_pixels(length)
+    margin = max(8, round(image_width * 0.01))
+    if bar_pixels > image_width - 2 * margin:
+        raise ScaleBarTooLong("fixed scale bar length does not fit the image")
+    x = min(max(position.x * image_width, margin), image_width - bar_pixels - margin)
+    y = min(max(position.y * image_height, margin * 4), image_height - margin)
+    return ScaleBarGeometry(
+        start=Point(x, y),
+        end=Point(x + bar_pixels, y),
+        label=_format_length(length, calibration.unit.value),
+        pixel_length=bar_pixels,
     )
 
 
@@ -77,9 +108,15 @@ def draw_scale_bar(
     image: np.ndarray,
     calibration: Calibration,
     position: NormalizedPoint = DEFAULT_SCALE_BAR_POSITION,
+    fixed_length: float | None = None,
 ) -> np.ndarray:
     height, width = image.shape[:2]
-    geometry = build_scale_bar(width, height, calibration, position)
+    if fixed_length is None:
+        geometry = build_scale_bar(width, height, calibration, position)
+    else:
+        geometry = build_scale_bar_fixed(
+            width, height, calibration, fixed_length, position
+        )
     rendered = image.copy()
     start = (round(geometry.start.x), round(geometry.start.y))
     end = (round(geometry.end.x), round(geometry.end.y))

@@ -8,6 +8,7 @@ models from JCameraPro.
 ## Core MVP
 
 - Camera discovery through MSMF, DirectShow, or V4L2 with automatic fallback.
+- Automatic highest-resolution, best-format camera mode by default.
 - Bounded, non-blocking camera acquisition.
 - Live preview, freeze/resume, stop, and screenshot export.
 - Brightness, contrast, temperature, tint, grayscale, and edge preview.

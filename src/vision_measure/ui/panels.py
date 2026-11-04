@@ -41,11 +41,12 @@ class CameraControlBar(QWidget):
             ("V4L2", CameraApi.V4L2),
         ):
             self.api_combo.addItem(label, api)
-        self.width_spin = self._dimension_spin(160, 16384, 1280)
-        self.height_spin = self._dimension_spin(120, 16384, 720)
+        self.width_spin = self._dimension_spin(0, 16384, 0)
+        self.height_spin = self._dimension_spin(0, 16384, 0)
         self.fps_spin = QSpinBox()
-        self.fps_spin.setRange(1, 240)
-        self.fps_spin.setValue(30)
+        self.fps_spin.setRange(0, 240)
+        self.fps_spin.setValue(0)
+        self.fps_spin.setSpecialValueText("Best")
         self.refresh_button = QPushButton("Refresh")
         self.start_button = QPushButton("Start")
         self.stop_button = QPushButton("Stop")
@@ -76,6 +77,7 @@ class CameraControlBar(QWidget):
         spin = QSpinBox()
         spin.setRange(minimum, maximum)
         spin.setValue(value)
+        spin.setSpecialValueText("Best")
         return spin
 
     def selected_api(self) -> CameraApi:

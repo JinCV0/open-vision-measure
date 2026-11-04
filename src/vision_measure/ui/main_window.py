@@ -9,8 +9,6 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QMainWindow,
     QMessageBox,
-    QTableWidget,
-    QTableWidgetItem,
     QVBoxLayout,
     QWidget,
 )
@@ -19,7 +17,7 @@ from vision_measure.camera.backend import CameraSession
 from vision_measure.camera.models import CameraDevice
 from vision_measure.camera.opencv_backend import OpenCvCameraBackend
 from vision_measure.inspection.annotations import NormalizedPoint
-from vision_measure.inspection.models import Line, LineMeasurement
+from vision_measure.inspection.models import Line
 from vision_measure.ui.camera_tasks import CameraDiscoveryThread, CameraOpenThread
 from vision_measure.ui.panels import (
     CameraControlBar,
@@ -81,8 +79,6 @@ class MainWindow(QMainWindow):
         left.addWidget(self.camera_bar)
         self.viewport = ImageViewport()
         left.addWidget(self.viewport, 1)
-        self.measurement_table = self._build_measurement_table()
-        left.addWidget(self.measurement_table)
         root.addLayout(left, 1)
 
         self.image_panel = ImagePanel()
@@ -96,14 +92,6 @@ class MainWindow(QMainWindow):
         root.addLayout(controls)
         self.setCentralWidget(central)
         self.statusBar().showMessage("Idle")
-
-    @staticmethod
-    def _build_measurement_table() -> QTableWidget:
-        table = QTableWidget(0, 4)
-        table.setHorizontalHeaderLabels(("Type", "Pixels", "Physical", "Unit"))
-        table.horizontalHeader().setStretchLastSection(True)
-        table.setMaximumHeight(180)
-        return table
 
     def _connect_events(self) -> None:
         self.camera_bar.refresh_requested.connect(self._refresh_cameras)
@@ -168,6 +156,11 @@ class MainWindow(QMainWindow):
         self.workspace.attach_session(session)
         self._last_pump_error = None
         self._update_state()
+        mode = session.mode
+        fps = f" · {mode.fps:g} FPS" if mode.fps > 0 else ""
+        self.statusBar().showMessage(
+            f"Running · {mode.width}x{mode.height}{fps} · {mode.fourcc}"
+        )
 
     def _camera_error(self, message: str) -> None:
         self.statusBar().showMessage("Camera error")
@@ -211,24 +204,11 @@ class MainWindow(QMainWindow):
 
     def _add_line(self, line: Line) -> None:
         try:
-            measurement = self.workspace.add_line(line)
+            self.workspace.add_line(line)
         except Exception as exc:
             self._show_error(str(exc))
             return
-        self._append_measurement(measurement)
         self.viewport.set_lines(self.workspace.project.lines)
-
-    def _append_measurement(self, measurement: LineMeasurement) -> None:
-        row = self.measurement_table.rowCount()
-        self.measurement_table.insertRow(row)
-        values = (
-            "Line",
-            f"{measurement.pixel_length:.3f}",
-            f"{measurement.physical_length:.4f}",
-            measurement.unit.value,
-        )
-        for column, value in enumerate(values):
-            self.measurement_table.setItem(row, column, QTableWidgetItem(value))
 
     def _calibrate(self) -> None:
         if not self.workspace.project.lines:
@@ -240,15 +220,9 @@ class MainWindow(QMainWindow):
                 self.measurement_panel.reference_length_spin.value(),
                 self.measurement_panel.selected_unit(),
             )
-            self._rebuild_measurement_table()
             self._sync_scale_bar_overlay()
         except Exception as exc:
             self._show_error(str(exc))
-
-    def _rebuild_measurement_table(self) -> None:
-        self.measurement_table.setRowCount(0)
-        for measurement in self.workspace.measurements:
-            self._append_measurement(measurement)
 
     def _save_screenshot(self) -> None:
         preferences = self.preferences
@@ -335,7 +309,6 @@ class MainWindow(QMainWindow):
         try:
             self.workspace.load_project(Path(path))
             self._sync_controls_from_project()
-            self._rebuild_measurement_table()
             self.viewport.set_lines(self.workspace.project.lines)
             self._sync_scale_bar_overlay()
         except Exception as exc:

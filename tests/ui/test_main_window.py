@@ -14,6 +14,10 @@ def test_main_window_opens_with_idle_workspace(qtbot) -> None:
     qtbot.addWidget(window)
     assert window.workspace.state.value == "idle"
     assert window.windowTitle() == "Open Vision Measure"
+    assert not hasattr(window, "measurement_table")
+    assert window.camera_bar.width_spin.value() == 0
+    assert window.camera_bar.height_spin.value() == 0
+    assert window.camera_bar.fps_spin.value() == 0
 
 
 def test_screenshot_uses_persisted_folder_and_sequence(qtbot, tmp_path: Path) -> None:

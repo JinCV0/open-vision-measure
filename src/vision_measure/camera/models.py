@@ -14,6 +14,14 @@ class CameraApi(StrEnum):
 
 
 @dataclass(frozen=True, slots=True)
+class CameraMode:
+    width: int
+    height: int
+    fps: float
+    fourcc: str
+
+
+@dataclass(frozen=True, slots=True)
 class CameraDevice:
     index: int
     label: str
@@ -22,16 +30,21 @@ class CameraDevice:
 
 @dataclass(frozen=True, slots=True)
 class CaptureConfig:
-    width: int = 1280
-    height: int = 720
-    fps: float = 30.0
+    width: int = 0
+    height: int = 0
+    fps: float = 0.0
     api: CameraApi = CameraApi.AUTO
+    fourcc: str = "auto"
 
     def __post_init__(self) -> None:
-        if self.width <= 0 or self.height <= 0:
-            raise ValueError("capture dimensions must be positive")
-        if self.fps <= 0:
-            raise ValueError("frame rate must be positive")
+        if self.width < 0 or self.height < 0:
+            raise ValueError("capture dimensions must be non-negative")
+        if (self.width == 0) != (self.height == 0):
+            raise ValueError("width and height must both be automatic or specified")
+        if self.fps < 0:
+            raise ValueError("frame rate must be non-negative")
+        if self.fourcc != "auto" and len(self.fourcc) != 4:
+            raise ValueError("fourcc must be auto or four characters")
 
 
 @dataclass(frozen=True, slots=True)

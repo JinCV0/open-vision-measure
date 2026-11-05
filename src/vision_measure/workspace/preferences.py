@@ -11,8 +11,14 @@ from vision_measure.inspection.annotations import (
     DEFAULT_SCALE_BAR_POSITION,
     NormalizedPoint,
 )
+from vision_measure.inspection.scale_bar import (
+    DEFAULT_SCALE_BAR_STYLE,
+    ScaleBarStyle,
+    scale_bar_style_from_json,
+    scale_bar_style_to_json,
+)
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg"}
 
 
@@ -26,6 +32,7 @@ class AppPreferences:
     screenshot_extension: str = ".png"
     scale_bar_enabled: bool = False
     scale_bar_position: NormalizedPoint = DEFAULT_SCALE_BAR_POSITION
+    scale_bar_style: ScaleBarStyle = DEFAULT_SCALE_BAR_STYLE
 
     def __post_init__(self) -> None:
         extension = self.screenshot_extension.lower()
@@ -52,10 +59,15 @@ class PreferencesStore:
             return AppPreferences()
         try:
             raw: Any = json.loads(self.path.read_text(encoding="utf-8"))
-            if not isinstance(raw, dict) or raw.get("schema_version") != SCHEMA_VERSION:
+            if not isinstance(raw, dict) or raw.get("schema_version") not in (1, 2):
                 raise PreferencesFormatError("unsupported preferences schema")
             position = raw.get("scale_bar_position", {})
             directory = raw.get("screenshot_directory")
+            style = (
+                DEFAULT_SCALE_BAR_STYLE
+                if raw["schema_version"] == 1
+                else scale_bar_style_from_json(raw.get("scale_bar_style"))
+            )
             return AppPreferences(
                 screenshot_directory=None if directory is None else Path(directory),
                 screenshot_extension=str(raw.get("screenshot_extension", ".png")),
@@ -64,6 +76,7 @@ class PreferencesStore:
                     float(position.get("x", DEFAULT_SCALE_BAR_POSITION.x)),
                     float(position.get("y", DEFAULT_SCALE_BAR_POSITION.y)),
                 ),
+                scale_bar_style=style,
             )
         except (OSError, TypeError, ValueError, json.JSONDecodeError) as exc:
             raise PreferencesFormatError("cannot read preferences") from exc
@@ -83,6 +96,7 @@ class PreferencesStore:
                 "x": preferences.scale_bar_position.x,
                 "y": preferences.scale_bar_position.y,
             },
+            "scale_bar_style": scale_bar_style_to_json(preferences.scale_bar_style),
         }
         temporary: Path | None = None
         try:

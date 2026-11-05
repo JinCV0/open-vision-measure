@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Deliver the microscope electronic-eyepiece workflow: per-magnification calibration, a two-click calibration interaction, a fixed-physical-length scale bar, plant-tissue measurements that keep their source magnification, and optional AI subject extraction with graceful fallback.
+**Goal:** Deliver the microscope electronic-eyepiece workflow: per-magnification calibration, a two-click calibration interaction, a fixed-physical-length scale bar, and plant-tissue measurements that keep their source magnification.
 
-**Architecture:** Extend the four-module `vision_measure` package without growing `ui/main_window.py`. `inspection` owns magnification configuration, conversion, scale-bar geometry, and mask cleanup; `workspace` owns switching magnifications, persistence, and the screenshot pipeline; a new `subject_extraction` boundary isolates `rembg` inference; `ui` only collects input and renders.
+**Architecture:** Extend the `vision_measure` package without growing `ui/main_window.py`. `inspection` owns magnification configuration, conversion, and scale-bar geometry; `workspace` owns switching magnifications, persistence, screenshots, and CSV export; `ui` only collects input and renders.
 
 **Tech Stack:** Python 3.12, uv, PySide6, OpenCV, NumPy, pytest, pytest-qt, Ruff, mypy, PyInstaller.
 
@@ -14,11 +14,11 @@
 
 As of 2026-11-05:
 
-- Tasks 1-9 are implemented and covered by the local test gate.
-- Task 10 is locally complete through wheel/sdist, AI-enabled EXE, basic smoke,
-  AI runtime smoke, and packaged real-model inference smoke.
-- Real plant-tissue quality validation, the 20-image acceptance set, model-weight
-  redistribution review, remote push, and GitHub Release remain pending.
+- Tasks 1-6 and the non-AI portion of Task 10 are implemented.
+- Tasks 7-9 were retired after real-image evaluation. AI runtime dependencies,
+  model integration, mask cleanup, and AI screenshot UI have been removed.
+- The public repository is live. Real eyepiece acceptance and GitHub Release
+  remain separate release activities.
 
 ## Global Constraints
 
@@ -537,7 +537,7 @@ git add src/vision_measure/ui tests/ui
 git commit -m "feat: add two-click calibration and magnification UI"
 ```
 
-### Task 7: AI Subject Extraction Spike
+### Task 7: AI Subject Extraction Spike (Retired)
 
 **Files:**
 - Create: `scripts/ai_spike.py`
@@ -566,7 +566,7 @@ git add scripts/ai_spike.py
 git commit -m "chore: add AI subject extraction spike"
 ```
 
-### Task 8: Subject Extraction Boundary and Mask Cleanup
+### Task 8: Subject Extraction Boundary and Mask Cleanup (Retired)
 
 **Files:**
 - Create: `src/vision_measure/subject_extraction/__init__.py`
@@ -622,7 +622,7 @@ git add src/vision_measure/subject_extraction tests/unit/test_mask_cleanup.py
 git commit -m "feat: add subject extraction boundary and mask cleanup"
 ```
 
-### Task 9: AI Screenshot Preview and Fallback
+### Task 9: AI Screenshot Preview and Fallback (Retired)
 
 **Files:**
 - Modify: `src/vision_measure/workspace/controller.py`

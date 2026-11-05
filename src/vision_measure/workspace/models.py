@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-
-import numpy as np
+from dataclasses import dataclass
 
 from vision_measure.inspection.models import Line, MagnificationProfile
 from vision_measure.inspection.processing import ImageSettings
@@ -12,14 +10,6 @@ from vision_measure.inspection.processing import ImageSettings
 class MeasurementRecord:
     line: Line
     magnification: str
-
-
-@dataclass(frozen=True, slots=True)
-class SubjectCaptureResult:
-    original: np.ndarray = field(repr=False)
-    mask: np.ndarray | None = field(repr=False)
-    composite: np.ndarray = field(repr=False)
-    error: str | None = None
 
 
 @dataclass(frozen=True, slots=True)

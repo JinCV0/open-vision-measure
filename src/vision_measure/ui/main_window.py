@@ -20,7 +20,6 @@ from vision_measure.camera.models import CameraDevice, CaptureConfig
 from vision_measure.camera.opencv_backend import OpenCvCameraBackend
 from vision_measure.inspection.annotations import NormalizedPoint
 from vision_measure.inspection.models import Line
-from vision_measure.ui.ai_capture import AiScreenshotController
 from vision_measure.ui.camera_tasks import CameraDiscoveryThread, CameraOpenThread
 from vision_measure.ui.microscope import MicroscopeControls
 from vision_measure.ui.panels import (
@@ -66,15 +65,6 @@ class MainWindow(QMainWindow):
             self.magnification_panel,
             self.calibration_panel,
             self.viewport,
-        )
-        self.ai_capture = AiScreenshotController(
-            self.workspace,
-            self.image_panel,
-            self,
-            lambda: self.preferences,
-            self._set_preferences,
-            self._show_error,
-            self.statusBar().showMessage,
         )
         self._connect_events()
         self.microscope.sync()

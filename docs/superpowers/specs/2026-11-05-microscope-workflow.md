@@ -1,8 +1,15 @@
 # Open Vision Measure — Microscope Workflow Design (0.3.0)
 
 Date: 2026-11-05
-Status: Direction approved; specification under implementation
+Status: Current 0.3.0 scope implemented; AI extraction retired
 License: Apache-2.0
+
+> **Current implementation note:** AI subject extraction, `rembg`, BiRefNet,
+> ONNX Runtime, mask cleanup, and AI screenshot previews were removed after
+> real-image evaluation. AI sections remain below as historical design context
+> only. The current product scope is camera observation, magnification
+> calibration, measurement, fixed-length scale bars, screenshots, and project
+> persistence.
 
 ## 1. Objective
 
@@ -11,7 +18,7 @@ workstation for plant tissue sections. A user connects an eyepiece camera,
 manually selects the objective magnification, calibrates each magnification
 independently, measures tissue features with a calibrated physical scale bar,
 and captures screenshots for papers and teaching. Original frames are always
-preserved; AI subject extraction is an optional, graceful-degrading enhancement.
+preserved.
 
 ## 2. Product Boundary
 
@@ -28,7 +35,6 @@ preserved; AI subject extraction is an optional, graceful-degrading enhancement.
   area/perimeter, vessel/cell/lacuna diameter, count, and mean/std/min/max.
 - Measurement records keep the magnification they were measured under.
 - Screenshot with scale bar and magnification label; original frame preserved.
-- Optional AI subject extraction with transparent/white-background output.
 - Schema migration from v1 projects without silently applying a single v1
   calibration to all magnifications.
 
@@ -50,27 +56,23 @@ preserved; AI subject extraction is an optional, graceful-degrading enhancement.
    physical length/area show an `未标定` placeholder under an uncalibrated
    magnification, with a prominent `标定此倍率` entry. Switching magnification
    never mutates historical records.
-3. **AI screenshot modes (v1)** — original image (always available) and
-   white-background clean image. Transparent PNG is a cheap add-on because the
-   alpha mask is already produced. Darkened-background highlighting is deferred.
+3. **AI screenshot modes** — retired from 0.3.0. No model runtime or AI screenshot
+   entry point is shipped. Users can extend the source independently.
 
 ## 4. Technology
 
 - Python 3.12, `uv`, PySide6, OpenCV, NumPy.
-- `rembg` + `birefnet-general` for subject extraction (spike first).
-- ONNX Runtime CPU by default; DirectML only after a measured-compatible spike.
 - pytest, pytest-qt, Ruff, mypy.
 
 ## 5. Architecture
 
-The four existing modules keep their direction; magnification and AI land
-without growing `ui/main_window.py` (currently ~388 lines).
+The existing modules keep their direction; magnification and scale-bar work do
+not grow `ui/main_window.py` beyond the project file limit.
 
 ### 5.1 `inspection`
 
-Owns magnification configuration, per-magnification calibration conversion,
-fixed-physical-length scale-bar geometry, and AI mask post-processing as pure,
-Qt-free data and computation.
+Owns magnification configuration, per-magnification calibration conversion, and
+fixed-physical-length scale-bar geometry as pure, Qt-free data and computation.
 
 ```python
 @dataclass(frozen=True, slots=True)

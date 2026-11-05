@@ -3,8 +3,6 @@
 import os
 from pathlib import Path
 
-from PyInstaller.utils.hooks import collect_submodules, copy_metadata
-
 root = Path(SPECPATH).resolve().parent
 theme_datas = [
     (
@@ -12,25 +10,12 @@ theme_datas = [
         "vision_measure/ui/assets",
     )
 ]
-ai_hidden_imports = []
-ai_datas = []
-if os.environ.get("OVM_WITH_AI") == "1":
-    ai_hidden_imports = [
-        "rembg",
-        "rembg.sessions",
-        *collect_submodules("rembg.sessions"),
-    ]
-    ai_datas = [
-        *copy_metadata("pymatting"),
-        *copy_metadata("rembg"),
-    ]
-
 analysis = Analysis(
     [str(root / "scripts" / "exe_entry.py")],
     pathex=[str(root / "src")],
     binaries=[],
-    datas=[*theme_datas, *ai_datas],
-    hiddenimports=ai_hidden_imports,
+    datas=theme_datas,
+    hiddenimports=[],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

@@ -21,6 +21,6 @@ weights.
 ## Scope notes
 
 - The application is local-first and does not require a remote service.
-- AI model weights are external and are not distributed by this repository.
+- AI background removal and model runtimes are not part of the current release.
 - Camera and OpenCV failures should be reported as bugs unless they demonstrate
   a security boundary violation.

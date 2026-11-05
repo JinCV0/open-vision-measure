@@ -7,14 +7,6 @@ following runtime components:
 - Qt — LGPL-3.0 and compatible Qt licensing terms.
 - OpenCV and opencv-python-headless — Apache-2.0.
 - NumPy — BSD-3-Clause.
-- rembg (optional AI build) — MIT.
-- BiRefNet source code (optional AI build) — MIT.
-- ONNX Runtime (optional AI build) — MIT.
-
-The optional AI build does not include a BiRefNet ONNX weight file. The
-`birefnet-general` weight must be obtained separately after its own license and
-redistribution terms have been verified. The application does not download it
-automatically.
 
 The packaged application keeps these components as separate bundled files or
 libraries and does not modify Qt itself. Source and license information is

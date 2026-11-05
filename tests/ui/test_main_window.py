@@ -20,6 +20,13 @@ def test_main_window_opens_with_idle_workspace(qtbot) -> None:
     assert window.camera_bar.fps_spin.value() == 0
 
 
+def test_main_window_does_not_expose_ai_capture(qtbot) -> None:
+    window = MainWindow(auto_discover=False)
+    qtbot.addWidget(window)
+    assert not hasattr(window, "ai_capture")
+    assert not hasattr(window.image_panel, "ai_screenshot_button")
+
+
 def test_screenshot_uses_persisted_folder_and_sequence(qtbot, tmp_path: Path) -> None:
     screenshot_directory = tmp_path / "captures"
     store = PreferencesStore(tmp_path / "preferences.json")

@@ -5,7 +5,6 @@ from dataclasses import replace
 from datetime import UTC, datetime
 from enum import StrEnum
 from pathlib import Path
-from typing import Literal
 
 import numpy as np
 
@@ -27,13 +26,9 @@ from vision_measure.inspection.models import (
     Unit,
 )
 from vision_measure.inspection.processing import ImageSettings, process_frame
-from vision_measure.subject_extraction import SubjectExtractor
-from vision_measure.subject_extraction.composite import composite_on_background
-from vision_measure.subject_extraction.mask import cleanup_mask
 from vision_measure.workspace.models import (
     MeasurementRecord,
     ProjectDocument,
-    SubjectCaptureResult,
 )
 from vision_measure.workspace.project import load_project, save_project
 from vision_measure.workspace.screenshot import ScreenshotError, save_capture
@@ -292,29 +287,6 @@ class Workspace:
             scale_bar_length=scale_bar_length,
         )
 
-    def save_subject_capture(
-        self,
-        result: SubjectCaptureResult,
-        path: Path,
-        source: Literal["original", "cleaned"],
-        scale_bar_enabled: bool = False,
-        scale_bar_position: NormalizedPoint = DEFAULT_SCALE_BAR_POSITION,
-        scale_bar_length: float | None = None,
-    ) -> None:
-        if source == "original":
-            image = result.original
-        elif source == "cleaned":
-            image = result.composite
-        else:
-            raise ValueError(f"unknown capture source: {source}")
-        self._save_image(
-            image,
-            path,
-            scale_bar_enabled=scale_bar_enabled,
-            scale_bar_position=scale_bar_position,
-            scale_bar_length=scale_bar_length,
-        )
-
     def _save_image(
         self,
         frame: np.ndarray,
@@ -334,27 +306,6 @@ class Workspace:
             )
         except ScreenshotError as exc:
             raise ExportError(f"cannot write image: {path}") from exc
-
-    def capture_with_subject(self, extractor: SubjectExtractor) -> np.ndarray:
-        return self.prepare_subject_capture(extractor).composite
-
-    def prepare_subject_capture(
-        self,
-        extractor: SubjectExtractor,
-        image: np.ndarray | None = None,
-    ) -> SubjectCaptureResult:
-        frame = self.display_frame if image is None else image
-        if frame is None:
-            raise ExportError("no frame is available")
-        original = frame.copy()
-        try:
-            mask = extractor.extract(original)
-            cleaned = cleanup_mask(mask)
-            composite = composite_on_background(original, cleaned)
-            return SubjectCaptureResult(original, cleaned, composite)
-        except Exception as exc:
-            reason = str(exc) or exc.__class__.__name__
-            return SubjectCaptureResult(original, None, original.copy(), reason)
 
     def export_csv(self, path: Path) -> None:
         path = Path(path)

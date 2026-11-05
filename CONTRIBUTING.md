@@ -16,15 +16,9 @@ uv sync --extra dev
 uv run vision-measure
 ```
 
-The optional AI runtime is installed separately:
-
-```powershell
-uv sync --extra dev --extra ai
-```
-
 ## Validation
 
-Run the same checks used by CI:
+Run the full local gate:
 
 ```powershell
 uv run ruff check .
@@ -48,17 +42,13 @@ results. Synthetic-camera tests do not establish real camera compatibility.
 - Do not commit credentials, personal paths, generated builds, capture data, or
   local planning artifacts.
 
-## AI and model contributions
+## Out-of-scope AI contributions
 
-Application code must not copy proprietary JCameraPro code, assets, or models.
-BiRefNet model weights are not redistributed by this repository. A contribution
-that adds or replaces a model must document:
-
-- the exact source and version;
-- file size and SHA-256;
-- the weight's own license;
-- whether redistribution is permitted;
-- CPU and accelerator compatibility that was actually tested.
+The current product intentionally excludes AI background removal, model
+runtimes, and model weights. Users may build independent extensions, but this
+repository does not ship or accept model artifacts as part of the core
+application. A future proposal must define scope, runtime, privacy, licensing,
+and hardware verification before implementation.
 
 ## Pull requests
 

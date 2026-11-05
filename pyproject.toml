@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "open-vision-measure"
-version = "0.2.0"
-description = "Local-first camera inspection and measurement workbench"
+version = "0.3.0"
+description = "Local-first microscope imaging and measurement workbench"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 license = { text = "Apache-2.0" }
@@ -21,6 +21,10 @@ dev = [
   "pytest>=8.3,<9",
   "pytest-qt>=4.4,<5",
   "ruff>=0.11,<1",
+]
+ai = [
+  "onnxruntime>=1.31.1,<2",
+  "rembg>=2.0.86,<3",
 ]
 
 [project.scripts]

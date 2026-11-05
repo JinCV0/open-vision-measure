@@ -48,7 +48,7 @@ class SyntheticCameraBackend:
 
     def discover(self, api: CameraApi = CameraApi.AUTO) -> tuple[CameraDevice, ...]:
         del api
-        return (CameraDevice(0, "Synthetic camera"),)
+        return (CameraDevice(0, "合成相机"),)
 
     def open(self, device: CameraDevice, config: CaptureConfig) -> SyntheticCameraSession:
         del device, config

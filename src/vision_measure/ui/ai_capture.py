@@ -68,7 +68,7 @@ class AiScreenshotDialog(QDialog):
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
-        self.setWindowTitle("AI screenshot")
+        self.setWindowTitle("AI 截图")
         self.selected_source: str | None = None
         root = QVBoxLayout(self)
         previews = QHBoxLayout()
@@ -78,9 +78,9 @@ class AiScreenshotDialog(QDialog):
             else result.mask
         )
         for title, image in (
-            ("Original", result.original),
-            ("Mask", mask),
-            ("Cleaned", result.composite),
+            ("原图", result.original),
+            ("掩膜", mask),
+            ("净图", result.composite),
         ):
             preview = QVBoxLayout()
             preview.addWidget(QLabel(title))
@@ -93,8 +93,8 @@ class AiScreenshotDialog(QDialog):
         root.addLayout(previews, 1)
         actions = QHBoxLayout()
         actions.addStretch(1)
-        self.save_original_button = QPushButton("Save original")
-        self.save_cleaned_button = QPushButton("Save cleaned")
+        self.save_original_button = QPushButton("保存原图")
+        self.save_cleaned_button = QPushButton("保存净图")
         self.save_cleaned_button.setEnabled(result.mask is not None)
         actions.addWidget(self.save_original_button)
         actions.addWidget(self.save_cleaned_button)
@@ -156,7 +156,7 @@ class AiScreenshotController(QObject):
             return
         frame = self._workspace.display_frame
         if frame is None:
-            self._show_error("No frame is available")
+            self._show_error("没有可用画面")
             return
         self._image_panel.ai_screenshot_button.setEnabled(False)
         self._thread = AiCaptureThread(self._workspace, frame.copy())
@@ -196,6 +196,6 @@ class AiScreenshotController(QObject):
                 scale_bar_length=self._workspace.current_scale_bar_length,
             )
             self._set_preferences(updated)
-            self._set_status(f"Saved {path}")
+            self._set_status(f"已保存：{path}")
         except Exception as exc:
             self._show_error(str(exc))

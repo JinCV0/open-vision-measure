@@ -135,7 +135,7 @@ class MainWindow(QMainWindow):
         sidebar.setMaximumWidth(400)
         root.addWidget(sidebar)
         self.setCentralWidget(central)
-        self.statusBar().showMessage("Idle")
+        self.statusBar().showMessage("空闲")
 
     def _connect_events(self) -> None:
         self.camera_bar.refresh_requested.connect(self._refresh_cameras)
@@ -158,7 +158,7 @@ class MainWindow(QMainWindow):
         if self._discovery_thread is not None and self._discovery_thread.isRunning():
             return
         self.camera_bar.refresh_button.setEnabled(False)
-        self.statusBar().showMessage("Discovering cameras...")
+        self.statusBar().showMessage("正在查找相机…")
         self._discovery_thread = CameraDiscoveryThread(
             self._backend, self.camera_bar.selected_api(), self
         )
@@ -173,17 +173,17 @@ class MainWindow(QMainWindow):
     def _cameras_found(self, devices: tuple[CameraDevice, ...]) -> None:
         self.camera_bar.set_devices(devices)
         if devices:
-            self.statusBar().showMessage(f"Found {len(devices)} camera(s)")
+            self.statusBar().showMessage(f"找到 {len(devices)} 个相机")
         else:
-            self.statusBar().showMessage("No cameras found")
+            self.statusBar().showMessage("未找到相机")
 
     def _start_camera(self) -> None:
         device = self.camera_bar.selected_device()
         if device is None:
-            self._show_error("No camera is selected")
+            self._show_error("未选择相机")
             return
         self.camera_bar.start_button.setEnabled(False)
-        self.statusBar().showMessage("Opening camera...")
+        self.statusBar().showMessage("正在打开相机…")
         self._open_thread = CameraOpenThread(
             self._backend, device, self.camera_bar.capture_config(), self
         )
@@ -211,11 +211,11 @@ class MainWindow(QMainWindow):
         self._update_state()
         self.microscope.sync()
         self._sync_scale_bar_overlay()
-        fps = f" · {mode.fps:g} FPS" if mode.fps > 0 else ""
-        self.statusBar().showMessage(f"Running · {mode.width}x{mode.height}{fps} · {mode.fourcc}")
+        fps = f" · {mode.fps:g} 帧/秒" if mode.fps > 0 else ""
+        self.statusBar().showMessage(f"运行中 · {mode.width}×{mode.height}{fps} · {mode.fourcc}")
 
     def _camera_error(self, message: str) -> None:
-        self.statusBar().showMessage("Camera error")
+        self.statusBar().showMessage("相机错误")
         self.camera_bar.start_button.setEnabled(True)
         self._show_error(message)
 
@@ -234,7 +234,7 @@ class MainWindow(QMainWindow):
     def _update_state(self) -> None:
         state = self.workspace.state
         self.camera_bar.set_frozen(state is WorkspaceState.FROZEN)
-        self.statusBar().showMessage(state.value.title())
+        self.statusBar().showMessage(state.label)
 
     def _refresh_preview(self) -> None:
         previous_state = self.workspace.state
@@ -277,7 +277,7 @@ class MainWindow(QMainWindow):
                 scale_bar_length=self.workspace.current_scale_bar_length,
             )
             self._set_preferences(preferences)
-            self.statusBar().showMessage(f"Saved {path}")
+            self.statusBar().showMessage(f"已保存：{path}")
         except (ExportError, ValueError) as exc:
             self._show_error(str(exc))
 
@@ -289,7 +289,7 @@ class MainWindow(QMainWindow):
         )
         selected = QFileDialog.getExistingDirectory(
             self,
-            "Choose screenshot folder",
+            "选择截图文件夹",
             start,
         )
         if selected:
@@ -304,7 +304,7 @@ class MainWindow(QMainWindow):
 
     def _save_project(self) -> None:
         path, _ = QFileDialog.getSaveFileName(
-            self, "Save project", "project.ovm.json", "Project (*.ovm.json)"
+            self, "保存项目", "project.ovm.json", "项目 (*.ovm.json)"
         )
         if not path:
             return
@@ -314,7 +314,7 @@ class MainWindow(QMainWindow):
             self._show_error(str(exc))
 
     def _load_project(self) -> None:
-        path, _ = QFileDialog.getOpenFileName(self, "Load project", "", "Project (*.ovm.json)")
+        path, _ = QFileDialog.getOpenFileName(self, "打开项目", "", "项目 (*.ovm.json)")
         if not path:
             return
         try:
@@ -383,7 +383,7 @@ class MainWindow(QMainWindow):
 
     def _export_csv(self) -> None:
         path, _ = QFileDialog.getSaveFileName(
-            self, "Export measurements", "measurements.csv", "CSV (*.csv)"
+            self, "导出测量数据", "measurements.csv", "CSV (*.csv)"
         )
         if not path:
             return

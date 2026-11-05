@@ -25,3 +25,13 @@ def test_auto_scale_bar_reports_pixel_length() -> None:
     calibration = Calibration(units_per_pixel=0.1, unit=Unit.MM)
     geometry = build_scale_bar(2000, 1000, calibration)
     assert geometry.pixel_length == pytest.approx(geometry.end.x - geometry.start.x)
+
+
+def test_micrometre_scale_bar_uses_ascii_safe_label() -> None:
+    geometry = build_scale_bar_fixed(
+        100,
+        100,
+        Calibration(units_per_pixel=0.5, unit=Unit.UM),
+        length=10.0,
+    )
+    assert geometry.label == "10 um"

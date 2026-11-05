@@ -9,7 +9,18 @@ class Unit(StrEnum):
     PX = "px"
     MM = "mm"
     CM = "cm"
+    UM = "um"
     IN = "in"
+
+    @property
+    def display_name(self) -> str:
+        return {
+            Unit.PX: "像素",
+            Unit.MM: "毫米",
+            Unit.CM: "厘米",
+            Unit.UM: "微米",
+            Unit.IN: "英寸",
+        }[self]
 
 
 @dataclass(frozen=True, slots=True)
@@ -36,9 +47,7 @@ class Calibration:
             raise ValueError("units_per_pixel must be finite and positive")
 
     @classmethod
-    def from_reference(
-        cls, line: Line, physical_length: float, unit: Unit
-    ) -> Calibration:
+    def from_reference(cls, line: Line, physical_length: float, unit: Unit) -> Calibration:
         from vision_measure.inspection.calibration import (
             InvalidCalibration,
             line_length_pixels,
@@ -48,11 +57,7 @@ class Calibration:
             pixel_length = line_length_pixels(line)
         except ValueError as exc:
             raise InvalidCalibration(str(exc)) from exc
-        if (
-            not math.isfinite(physical_length)
-            or physical_length <= 0
-            or pixel_length <= 0
-        ):
+        if not math.isfinite(physical_length) or physical_length <= 0 or pixel_length <= 0:
             raise InvalidCalibration(
                 "reference length and physical length must be finite and positive"
             )

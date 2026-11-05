@@ -66,3 +66,11 @@ def test_measure_button_enables_one_shot_canvas_measurement(qtbot) -> None:
     assert len(window.workspace.lines) == 1
     assert window.viewport.measurement_mode is False
     assert window.calibration_panel.measure_button.isChecked() is False
+
+
+def test_unit_selector_includes_micrometre(qtbot) -> None:
+    window = MainWindow(auto_discover=False)
+    qtbot.addWidget(window)
+    index = window.calibration_panel.unit_combo.findData(Unit.UM)
+    assert index >= 0
+    assert window.calibration_panel.unit_combo.itemText(index) == "微米"

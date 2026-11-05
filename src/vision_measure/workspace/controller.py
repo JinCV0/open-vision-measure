@@ -44,6 +44,14 @@ class WorkspaceState(StrEnum):
     RUNNING = "running"
     FROZEN = "frozen"
 
+    @property
+    def label(self) -> str:
+        return {
+            WorkspaceState.IDLE: "空闲",
+            WorkspaceState.RUNNING: "运行中",
+            WorkspaceState.FROZEN: "已冻结",
+        }[self]
+
 
 class ExportError(RuntimeError):
     pass

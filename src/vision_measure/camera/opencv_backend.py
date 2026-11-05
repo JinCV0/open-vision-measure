@@ -126,9 +126,7 @@ class OpenCvCameraBackend:
             (api,)
             if api is not CameraApi.AUTO
             else (
-                (CameraApi.MSMF, CameraApi.DSHOW)
-                if sys.platform == "win32"
-                else (CameraApi.V4L2,)
+                (CameraApi.MSMF, CameraApi.DSHOW) if sys.platform == "win32" else (CameraApi.V4L2,)
             )
         )
         devices: list[CameraDevice] = []
@@ -138,7 +136,7 @@ class OpenCvCameraBackend:
                     devices.append(
                         CameraDevice(
                             index=index,
-                            label=f"Camera {index} ({candidate.value})",
+                            label=f"相机 {index} ({candidate.value})",
                             api=candidate,
                         )
                     )
@@ -147,11 +145,7 @@ class OpenCvCameraBackend:
 
     def open(self, device: CameraDevice, config: CaptureConfig) -> OpenCvCameraSession:
         selected_api = config.api if config.api is not CameraApi.AUTO else device.api
-        formats = (
-            (config.fourcc,)
-            if config.fourcc != "auto"
-            else _FORMAT_CANDIDATES
-        )
+        formats = (config.fourcc,) if config.fourcc != "auto" else _FORMAT_CANDIDATES
         modes = tuple(
             mode
             for fourcc in formats

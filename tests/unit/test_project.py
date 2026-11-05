@@ -64,3 +64,23 @@ def test_unknown_schema_version_is_rejected(tmp_path) -> None:
     path.write_text(json.dumps({"schema_version": 99}), encoding="utf-8")
     with pytest.raises(ProjectFormatError):
         load_project(path)
+
+
+def test_micrometre_calibration_round_trip(tmp_path) -> None:
+    source = ProjectDocument(
+        magnifications=(
+            MagnificationProfile(
+                name="40x",
+                calibration=Calibration(units_per_pixel=0.5, unit=Unit.UM),
+            ),
+        ),
+        current_magnification="40x",
+    )
+    path = tmp_path / "micrometre.json"
+
+    save_project(path, source)
+    loaded = load_project(path)
+
+    calibration = loaded.magnifications[0].calibration
+    assert calibration is not None
+    assert calibration.unit is Unit.UM

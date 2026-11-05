@@ -18,9 +18,9 @@ def choose_capture_path(
         suggested = Path(pictures) / "OpenVisionMeasure" / "capture_0001.png"
         selected, _ = QFileDialog.getSaveFileName(
             parent,
-            "Save screenshot",
+            "保存截图",
             str(suggested),
-            "Images (*.png *.jpg *.jpeg)",
+            "图片 (*.png *.jpg *.jpeg)",
         )
         if not selected:
             return None

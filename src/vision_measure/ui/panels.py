@@ -48,7 +48,7 @@ class CameraControlBar(QWidget):
         self.api_combo = QComboBox()
         self.api_combo.setMinimumWidth(140)
         for label, api in (
-            ("Auto", CameraApi.AUTO),
+            ("自动", CameraApi.AUTO),
             ("Media Foundation", CameraApi.MSMF),
             ("DirectShow", CameraApi.DSHOW),
             ("V4L2", CameraApi.V4L2),
@@ -59,19 +59,19 @@ class CameraControlBar(QWidget):
         self.fps_spin = QSpinBox()
         self.fps_spin.setRange(0, 240)
         self.fps_spin.setValue(0)
-        self.fps_spin.setSpecialValueText("Best")
+        self.fps_spin.setSpecialValueText("最佳")
         self.fps_spin.setMaximumWidth(80)
-        self.refresh_button = QPushButton("Refresh")
-        self.start_button = QPushButton("Start")
-        self.stop_button = QPushButton("Stop")
-        self.freeze_button = QPushButton("Freeze")
-        top_row.addWidget(QLabel("Camera"))
+        self.refresh_button = QPushButton("刷新")
+        self.start_button = QPushButton("启动")
+        self.stop_button = QPushButton("停止")
+        self.freeze_button = QPushButton("冻结")
+        top_row.addWidget(QLabel("相机"))
         top_row.addWidget(self.camera_combo, 1)
         top_row.addWidget(self.api_combo)
         bottom_row.addWidget(self.width_spin)
-        bottom_row.addWidget(QLabel("x"))
+        bottom_row.addWidget(QLabel("×"))
         bottom_row.addWidget(self.height_spin)
-        bottom_row.addWidget(QLabel("FPS"))
+        bottom_row.addWidget(QLabel("帧率"))
         bottom_row.addWidget(self.fps_spin)
         bottom_row.addStretch(1)
         bottom_row.addWidget(self.refresh_button)
@@ -97,7 +97,7 @@ class CameraControlBar(QWidget):
         spin = QSpinBox()
         spin.setRange(minimum, maximum)
         spin.setValue(value)
-        spin.setSpecialValueText("Best")
+        spin.setSpecialValueText("最佳")
         spin.setMaximumWidth(100)
         return spin
 
@@ -123,7 +123,7 @@ class CameraControlBar(QWidget):
             self.camera_combo.addItem(device.label, device)
 
     def set_frozen(self, frozen: bool) -> None:
-        self.freeze_button.setText("Resume" if frozen else "Freeze")
+        self.freeze_button.setText("继续" if frozen else "冻结")
 
 
 class ImagePanel(QGroupBox):
@@ -133,7 +133,7 @@ class ImagePanel(QGroupBox):
     folder_requested = Signal()
 
     def __init__(self, parent: QWidget | None = None) -> None:
-        super().__init__("Image", parent)
+        super().__init__("图像", parent)
         form = QFormLayout(self)
         configure_form_layout(form)
         self.brightness_slider = QSlider(Qt.Orientation.Horizontal)
@@ -149,11 +149,11 @@ class ImagePanel(QGroupBox):
         self.tint_slider = QSlider(Qt.Orientation.Horizontal)
         self.tint_slider.setRange(-100, 100)
         self.tint_value = QLabel("0")
-        self.gray_box = QCheckBox("Grayscale")
-        self.canny_box = QCheckBox("Edges")
-        self.screenshot_button = QPushButton("Save screenshot")
-        self.ai_screenshot_button = QPushButton("AI screenshot")
-        self.folder_button = QPushButton("Folder")
+        self.gray_box = QCheckBox("灰度")
+        self.canny_box = QCheckBox("边缘")
+        self.screenshot_button = QPushButton("保存截图")
+        self.ai_screenshot_button = QPushButton("AI 截图")
+        self.folder_button = QPushButton("文件夹")
         for value in (
             self.brightness_value,
             self.contrast_value,
@@ -162,13 +162,13 @@ class ImagePanel(QGroupBox):
         ):
             set_material_property(value, "materialRole", "value")
         set_material_property(self.folder_button, "materialAppearance", "text")
-        form.addRow("Brightness", self._slider_row(self.brightness_slider, self.brightness_value))
-        form.addRow("Contrast", self._slider_row(self.contrast_slider, self.contrast_value))
+        form.addRow("亮度", self._slider_row(self.brightness_slider, self.brightness_value))
+        form.addRow("对比度", self._slider_row(self.contrast_slider, self.contrast_value))
         form.addRow(
-            "Temperature",
+            "色温",
             self._slider_row(self.temperature_slider, self.temperature_value),
         )
-        form.addRow("Tint", self._slider_row(self.tint_slider, self.tint_value))
+        form.addRow("色调", self._slider_row(self.tint_slider, self.tint_value))
         form.addRow(self.gray_box)
         form.addRow(self.canny_box)
         screenshot_row = QHBoxLayout()
@@ -237,7 +237,7 @@ class MagnificationPanel(QGroupBox):
     magnification_changed = Signal(str)
 
     def __init__(self, parent: QWidget | None = None) -> None:
-        super().__init__("Magnification", parent)
+        super().__init__("倍率", parent)
         form = QFormLayout(self)
         configure_form_layout(form)
         self.selector = QComboBox()
@@ -247,8 +247,8 @@ class MagnificationPanel(QGroupBox):
             self.selector.addItem(name)
         self.status = QLabel("未标定")
         set_material_property(self.status, "materialRole", "value")
-        form.addRow("Current", self.selector)
-        form.addRow("Calibration", self.status)
+        form.addRow("当前", self.selector)
+        form.addRow("标定", self.status)
         self.selector.activated.connect(self._emit_selected)
         line_edit = self.selector.lineEdit()
         if line_edit is not None:
@@ -270,7 +270,9 @@ class MagnificationPanel(QGroupBox):
         if calibration is None:
             self.status.setText("未标定")
             return
-        self.status.setText(f"{calibration.units_per_pixel:.4g} {calibration.unit.value}/px")
+        self.status.setText(
+            f"{calibration.units_per_pixel:.4g} {calibration.unit.display_name}/像素"
+        )
 
     def _emit_selected(self, _index: int = -1) -> None:
         name = self.selector.currentText().strip()
@@ -284,7 +286,7 @@ class CalibrationPanel(QGroupBox):
     scale_bar_length_changed = Signal(float)
 
     def __init__(self, parent: QWidget | None = None) -> None:
-        super().__init__("Calibration", parent)
+        super().__init__("标定", parent)
         form = QFormLayout(self)
         configure_form_layout(form)
         self.reference_length_spin = QDoubleSpinBox()
@@ -292,13 +294,13 @@ class CalibrationPanel(QGroupBox):
         self.reference_length_spin.setDecimals(4)
         self.reference_length_spin.setValue(10.0)
         self.unit_combo = QComboBox()
-        for unit in (Unit.MM, Unit.CM, Unit.IN, Unit.PX):
-            self.unit_combo.addItem(unit.value, unit)
-        self.measure_button = QPushButton("Measure")
+        for unit in (Unit.MM, Unit.CM, Unit.UM, Unit.IN, Unit.PX):
+            self.unit_combo.addItem(unit.display_name, unit)
+        self.measure_button = QPushButton("测量")
         self.measure_button.setCheckable(True)
         set_material_property(self.measure_button, "materialAppearance", "primary")
-        self.calibrate_button = QPushButton("Set calibration")
-        self.scale_bar_box = QCheckBox("Scale bar")
+        self.calibrate_button = QPushButton("设置标定")
+        self.scale_bar_box = QCheckBox("比例尺")
         self.scale_bar_box.setEnabled(False)
         self.scale_bar_length_spin = QDoubleSpinBox()
         self.scale_bar_length_spin.setRange(0.001, 1_000_000)
@@ -306,10 +308,10 @@ class CalibrationPanel(QGroupBox):
         self.scale_bar_length_spin.setValue(10.0)
         self.scale_bar_length_spin.setEnabled(False)
         form.addRow(self.measure_button)
-        form.addRow("Known length", self.reference_length_spin)
-        form.addRow("Unit", self.unit_combo)
+        form.addRow("已知长度", self.reference_length_spin)
+        form.addRow("单位", self.unit_combo)
         form.addRow(self.scale_bar_box)
-        form.addRow("Scale bar length", self.scale_bar_length_spin)
+        form.addRow("比例尺长度", self.scale_bar_length_spin)
         form.addRow(self.calibrate_button)
         self.measure_button.toggled.connect(self.measure_toggled.emit)
         self.calibrate_button.clicked.connect(self.calibrate_requested.emit)
@@ -352,12 +354,12 @@ class ProjectPanel(QGroupBox):
     export_requested = Signal()
 
     def __init__(self, parent: QWidget | None = None) -> None:
-        super().__init__("Project", parent)
+        super().__init__("项目", parent)
         layout = QVBoxLayout(self)
         configure_card_layout(layout)
-        self.save_button = QPushButton("Save project")
-        self.load_button = QPushButton("Load project")
-        self.export_button = QPushButton("Export CSV")
+        self.save_button = QPushButton("保存项目")
+        self.load_button = QPushButton("打开项目")
+        self.export_button = QPushButton("导出 CSV")
         for button in (self.save_button, self.load_button, self.export_button):
             set_material_property(button, "materialAppearance", "text")
         layout.addWidget(self.save_button)

@@ -108,6 +108,7 @@ class CameraControlBar(QWidget):
 class ImagePanel(QGroupBox):
     settings_changed = Signal()
     screenshot_requested = Signal()
+    ai_screenshot_requested = Signal()
     folder_requested = Signal()
 
     def __init__(self, parent: QWidget | None = None) -> None:
@@ -129,6 +130,7 @@ class ImagePanel(QGroupBox):
         self.gray_box = QCheckBox("Grayscale")
         self.canny_box = QCheckBox("Edges")
         self.screenshot_button = QPushButton("Save screenshot")
+        self.ai_screenshot_button = QPushButton("AI screenshot")
         self.folder_button = QPushButton("Folder")
         form.addRow("Brightness", self._slider_row(self.brightness_slider, self.brightness_value))
         form.addRow("Contrast", self._slider_row(self.contrast_slider, self.contrast_value))
@@ -141,6 +143,7 @@ class ImagePanel(QGroupBox):
         form.addRow(self.canny_box)
         screenshot_row = QHBoxLayout()
         screenshot_row.addWidget(self.screenshot_button)
+        screenshot_row.addWidget(self.ai_screenshot_button)
         screenshot_row.addWidget(self.folder_button)
         form.addRow(screenshot_row)
         self.brightness_slider.valueChanged.connect(self._values_changed)
@@ -150,6 +153,7 @@ class ImagePanel(QGroupBox):
         self.gray_box.toggled.connect(self.settings_changed.emit)
         self.canny_box.toggled.connect(self.settings_changed.emit)
         self.screenshot_button.clicked.connect(self.screenshot_requested.emit)
+        self.ai_screenshot_button.clicked.connect(self.ai_screenshot_requested.emit)
         self.folder_button.clicked.connect(self.folder_requested.emit)
 
     @staticmethod

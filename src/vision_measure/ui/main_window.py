@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import QStandardPaths, QTimer
+from PySide6.QtCore import QTimer
 from PySide6.QtGui import QCloseEvent
 from PySide6.QtWidgets import (
     QFileDialog,
@@ -18,6 +18,7 @@ from vision_measure.camera.models import CameraDevice, CaptureConfig
 from vision_measure.camera.opencv_backend import OpenCvCameraBackend
 from vision_measure.inspection.annotations import NormalizedPoint
 from vision_measure.inspection.models import Line
+from vision_measure.ui.ai_capture import AiScreenshotController
 from vision_measure.ui.camera_tasks import CameraDiscoveryThread, CameraOpenThread
 from vision_measure.ui.microscope import MicroscopeControls
 from vision_measure.ui.panels import (
@@ -27,6 +28,7 @@ from vision_measure.ui.panels import (
     MagnificationPanel,
     ProjectPanel,
 )
+from vision_measure.ui.screenshot_flow import choose_capture_path
 from vision_measure.ui.viewport import ImageViewport
 from vision_measure.workspace.controller import ExportError, Workspace, WorkspaceState
 from vision_measure.workspace.preferences import (
@@ -35,7 +37,6 @@ from vision_measure.workspace.preferences import (
     PreferencesStore,
     default_preferences_path,
 )
-from vision_measure.workspace.screenshot import next_capture_path
 
 
 class MainWindow(QMainWindow):
@@ -63,6 +64,15 @@ class MainWindow(QMainWindow):
             self.magnification_panel,
             self.calibration_panel,
             self.viewport,
+        )
+        self.ai_capture = AiScreenshotController(
+            self.workspace,
+            self.image_panel,
+            self,
+            lambda: self.preferences,
+            self._set_preferences,
+            self._show_error,
+            self.statusBar().showMessage,
         )
         self._connect_events()
         self.microscope.sync()
@@ -230,35 +240,10 @@ class MainWindow(QMainWindow):
         self.viewport.set_lines(self.workspace.lines)
 
     def _save_screenshot(self) -> None:
-        preferences = self.preferences
-        if preferences.screenshot_directory is None:
-            pictures = QStandardPaths.writableLocation(
-                QStandardPaths.StandardLocation.PicturesLocation
-            )
-            suggested = Path(pictures) / "OpenVisionMeasure" / "capture_0001.png"
-            selected, _ = QFileDialog.getSaveFileName(
-                self,
-                "Save screenshot",
-                str(suggested),
-                "Images (*.png *.jpg *.jpeg)",
-            )
-            if not selected:
-                return
-            selected_path = Path(selected)
-            if not selected_path.suffix:
-                selected_path = selected_path.with_suffix(".png")
-            preferences = AppPreferences(
-                screenshot_directory=selected_path.parent,
-                screenshot_extension=selected_path.suffix or ".png",
-                scale_bar_enabled=preferences.scale_bar_enabled,
-                scale_bar_position=preferences.scale_bar_position,
-            )
-            path = selected_path
-        else:
-            path = next_capture_path(
-                preferences.screenshot_directory,
-                preferences.screenshot_extension,
-            )
+        selected = choose_capture_path(self, self.preferences)
+        if selected is None:
+            return
+        path, preferences = selected
         try:
             self.workspace.save_display_frame(
                 path,

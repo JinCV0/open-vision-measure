@@ -33,3 +33,15 @@ def test_records_keep_source_magnification() -> None:
     assert workspace.records[1].magnification == "10x"
     assert workspace.measurements[0].physical_length == pytest.approx(2.0)
     assert workspace.measurements[1].physical_length == pytest.approx(1.0)
+
+
+def test_scale_bar_length_is_stored_per_magnification() -> None:
+    workspace = Workspace()
+    workspace.set_magnification("4x")
+    workspace.set_scale_bar_length(10.0)
+    workspace.set_magnification("10x")
+    workspace.set_scale_bar_length(2.0)
+
+    assert workspace.current_scale_bar_length == pytest.approx(2.0)
+    workspace.set_magnification("4x")
+    assert workspace.current_scale_bar_length == pytest.approx(10.0)

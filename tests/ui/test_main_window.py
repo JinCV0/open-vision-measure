@@ -25,9 +25,7 @@ def test_screenshot_uses_persisted_folder_and_sequence(qtbot, tmp_path: Path) ->
     store = PreferencesStore(tmp_path / "preferences.json")
     store.save(AppPreferences(screenshot_directory=screenshot_directory))
     workspace = Workspace()
-    session = SyntheticCameraBackend().open(
-        CameraDevice(0, "synthetic"), CaptureConfig()
-    )
+    session = SyntheticCameraBackend().open(CameraDevice(0, "synthetic"), CaptureConfig())
     workspace.attach_session(session)
     assert workspace.refresh_frame(1.0) is not None
     workspace.freeze()
@@ -47,15 +45,13 @@ def test_screenshot_uses_persisted_folder_and_sequence(qtbot, tmp_path: Path) ->
     workspace.stop()
 
 
-def test_scale_bar_switch_persists_on_calibrated_workspace(
-    qtbot, tmp_path: Path
-) -> None:
+def test_scale_bar_switch_persists_on_calibrated_workspace(qtbot, tmp_path: Path) -> None:
     store = PreferencesStore(tmp_path / "preferences.json")
     workspace = Workspace()
     workspace.set_reference(Line(Point(0, 0), Point(100, 0)), 10.0, Unit.MM)
     window = MainWindow(workspace=workspace, preferences_store=store, auto_discover=False)
     qtbot.addWidget(window)
-    window.measurement_panel.scale_bar_box.setChecked(True)
+    window.calibration_panel.scale_bar_box.setChecked(True)
     assert store.load().scale_bar_enabled is True
 
 

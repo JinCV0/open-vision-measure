@@ -104,6 +104,11 @@ class Workspace:
         return calibration.unit if calibration is not None else Unit.MM
 
     @property
+    def current_scale_bar_length(self) -> float | None:
+        profile = self._profile(self.projects.current_magnification)
+        return None if profile is None else profile.scale_bar_length
+
+    @property
     def measurements(self) -> tuple[LineMeasurement, ...]:
         return tuple(self._measure(record) for record in self.projects.records)
 
@@ -185,6 +190,19 @@ class Workspace:
         )
         self._calibration_configs[profile_name] = capture_config
 
+    def set_scale_bar_length(self, length: float) -> None:
+        name = self.projects.current_magnification
+        if name is None:
+            self.set_magnification(DEFAULT_MAGNIFICATION_NAME)
+            name = DEFAULT_MAGNIFICATION_NAME
+        self.projects = replace(
+            self.projects,
+            magnifications=tuple(
+                replace(profile, scale_bar_length=length) if profile.name == name else profile
+                for profile in self.projects.magnifications
+            ),
+        )
+
     def _clear_calibration(self, profile_name: str) -> None:
         self.projects = replace(
             self.projects,
@@ -240,6 +258,7 @@ class Workspace:
         path: Path,
         scale_bar_enabled: bool = False,
         scale_bar_position: NormalizedPoint = DEFAULT_SCALE_BAR_POSITION,
+        scale_bar_length: float | None = None,
     ) -> None:
         frame = self.display_frame
         if frame is None:
@@ -251,6 +270,7 @@ class Workspace:
                 calibration=self.current_calibration,
                 scale_bar_enabled=scale_bar_enabled,
                 scale_bar_position=scale_bar_position,
+                scale_bar_length=scale_bar_length,
             )
         except ScreenshotError as exc:
             raise ExportError(f"cannot write image: {path}") from exc

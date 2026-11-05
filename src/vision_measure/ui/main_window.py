@@ -14,15 +14,17 @@ from PySide6.QtWidgets import (
 )
 
 from vision_measure.camera.backend import CameraSession
-from vision_measure.camera.models import CameraDevice
+from vision_measure.camera.models import CameraDevice, CaptureConfig
 from vision_measure.camera.opencv_backend import OpenCvCameraBackend
 from vision_measure.inspection.annotations import NormalizedPoint
 from vision_measure.inspection.models import Line
 from vision_measure.ui.camera_tasks import CameraDiscoveryThread, CameraOpenThread
+from vision_measure.ui.microscope import MicroscopeControls
 from vision_measure.ui.panels import (
+    CalibrationPanel,
     CameraControlBar,
     ImagePanel,
-    MeasurementPanel,
+    MagnificationPanel,
     ProjectPanel,
 )
 from vision_measure.ui.viewport import ImageViewport
@@ -51,14 +53,19 @@ class MainWindow(QMainWindow):
         self._discovery_thread: CameraDiscoveryThread | None = None
         self._open_thread: CameraOpenThread | None = None
         self._last_pump_error: Exception | None = None
-        self._preferences_store = preferences_store or PreferencesStore(
-            default_preferences_path()
-        )
+        self._preferences_store = preferences_store or PreferencesStore(default_preferences_path())
         self.preferences = self._load_preferences()
         self.setWindowTitle("Open Vision Measure")
         self.resize(1440, 900)
         self._build_ui()
+        self.microscope = MicroscopeControls(
+            self.workspace,
+            self.magnification_panel,
+            self.calibration_panel,
+            self.viewport,
+        )
         self._connect_events()
+        self.microscope.sync()
         self.image_panel.set_settings(self.workspace.project.image_settings)
         self._sync_scale_bar_overlay()
         self._timer = QTimer(self)
@@ -82,11 +89,15 @@ class MainWindow(QMainWindow):
         root.addLayout(left, 1)
 
         self.image_panel = ImagePanel()
-        self.measurement_panel = MeasurementPanel()
+        self.magnification_panel = MagnificationPanel()
+        self.magnification_selector = self.magnification_panel.selector
+        self.calibration_status = self.magnification_panel.status
+        self.calibration_panel = CalibrationPanel()
         self.project_panel = ProjectPanel()
         controls = QVBoxLayout()
+        controls.addWidget(self.magnification_panel)
         controls.addWidget(self.image_panel)
-        controls.addWidget(self.measurement_panel)
+        controls.addWidget(self.calibration_panel)
         controls.addWidget(self.project_panel)
         controls.addStretch(1)
         root.addLayout(controls)
@@ -102,10 +113,9 @@ class MainWindow(QMainWindow):
         self.image_panel.screenshot_requested.connect(self._save_screenshot)
         self.image_panel.folder_requested.connect(self._choose_screenshot_folder)
         self.viewport.line_finished.connect(self._add_line)
-        self.measurement_panel.calibrate_requested.connect(self._calibrate)
-        self.measurement_panel.scale_bar_box.toggled.connect(
-            self._scale_bar_toggled
-        )
+        self.microscope.error_occurred.connect(self._show_error)
+        self.microscope.overlay_changed.connect(self._sync_scale_bar_overlay)
+        self.calibration_panel.scale_bar_box.toggled.connect(self._scale_bar_toggled)
         self.viewport.scale_bar_moved.connect(self._scale_bar_moved)
         self.project_panel.save_requested.connect(self._save_project)
         self.project_panel.load_requested.connect(self._load_project)
@@ -154,13 +164,22 @@ class MainWindow(QMainWindow):
 
     def _camera_opened(self, session: CameraSession) -> None:
         self.workspace.attach_session(session)
+        mode = session.mode
+        self.workspace.on_camera_changed(
+            CaptureConfig(
+                width=mode.width,
+                height=mode.height,
+                fps=mode.fps,
+                api=self.camera_bar.selected_api(),
+                fourcc=mode.fourcc,
+            )
+        )
         self._last_pump_error = None
         self._update_state()
-        mode = session.mode
+        self.microscope.sync()
+        self._sync_scale_bar_overlay()
         fps = f" · {mode.fps:g} FPS" if mode.fps > 0 else ""
-        self.statusBar().showMessage(
-            f"Running · {mode.width}x{mode.height}{fps} · {mode.fourcc}"
-        )
+        self.statusBar().showMessage(f"Running · {mode.width}x{mode.height}{fps} · {mode.fourcc}")
 
     def _camera_error(self, message: str) -> None:
         self.statusBar().showMessage("Camera error")
@@ -210,20 +229,6 @@ class MainWindow(QMainWindow):
             return
         self.viewport.set_lines(self.workspace.lines)
 
-    def _calibrate(self) -> None:
-        if not self.workspace.lines:
-            self._show_error("Draw a reference line first")
-            return
-        try:
-            self.workspace.set_reference(
-                self.workspace.lines[-1],
-                self.measurement_panel.reference_length_spin.value(),
-                self.measurement_panel.selected_unit(),
-            )
-            self._sync_scale_bar_overlay()
-        except Exception as exc:
-            self._show_error(str(exc))
-
     def _save_screenshot(self) -> None:
         preferences = self.preferences
         if preferences.screenshot_directory is None:
@@ -258,10 +263,10 @@ class MainWindow(QMainWindow):
             self.workspace.save_display_frame(
                 path,
                 scale_bar_enabled=(
-                    preferences.scale_bar_enabled
-                    and self.workspace.current_calibration is not None
+                    preferences.scale_bar_enabled and self.workspace.current_calibration is not None
                 ),
                 scale_bar_position=preferences.scale_bar_position,
+                scale_bar_length=self.workspace.current_scale_bar_length,
             )
             self._set_preferences(preferences)
             self.statusBar().showMessage(f"Saved {path}")
@@ -301,9 +306,7 @@ class MainWindow(QMainWindow):
             self._show_error(str(exc))
 
     def _load_project(self) -> None:
-        path, _ = QFileDialog.getOpenFileName(
-            self, "Load project", "", "Project (*.ovm.json)"
-        )
+        path, _ = QFileDialog.getOpenFileName(self, "Load project", "", "Project (*.ovm.json)")
         if not path:
             return
         try:
@@ -316,7 +319,7 @@ class MainWindow(QMainWindow):
 
     def _sync_controls_from_project(self) -> None:
         self.image_panel.set_settings(self.workspace.project.image_settings)
-        self.measurement_panel.set_unit(self.workspace.current_unit)
+        self.microscope.sync()
 
     def _load_preferences(self) -> AppPreferences:
         try:
@@ -357,16 +360,17 @@ class MainWindow(QMainWindow):
 
     def _sync_scale_bar_overlay(self) -> None:
         calibration = self.workspace.current_calibration
-        self.measurement_panel.set_calibration_available(calibration is not None)
-        self.measurement_panel.scale_bar_box.blockSignals(True)
-        self.measurement_panel.scale_bar_box.setChecked(
+        self.calibration_panel.set_calibration_available(calibration is not None)
+        self.calibration_panel.scale_bar_box.blockSignals(True)
+        self.calibration_panel.scale_bar_box.setChecked(
             self.preferences.scale_bar_enabled and calibration is not None
         )
-        self.measurement_panel.scale_bar_box.blockSignals(False)
+        self.calibration_panel.scale_bar_box.blockSignals(False)
         self.viewport.set_scale_bar(
             calibration,
             self.preferences.scale_bar_enabled and calibration is not None,
             self.preferences.scale_bar_position,
+            self.workspace.current_scale_bar_length,
         )
 
     def _export_csv(self) -> None:

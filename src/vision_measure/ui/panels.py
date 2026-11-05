@@ -17,7 +17,7 @@ from PySide6.QtWidgets import (
 )
 
 from vision_measure.camera.models import CameraApi, CameraDevice, CaptureConfig
-from vision_measure.inspection.models import Unit
+from vision_measure.inspection.models import Calibration, Unit
 from vision_measure.inspection.processing import ImageSettings
 
 
@@ -199,11 +199,55 @@ class ImagePanel(QGroupBox):
         self._values_changed()
 
 
-class MeasurementPanel(QGroupBox):
-    calibrate_requested = Signal()
+class MagnificationPanel(QGroupBox):
+    magnification_changed = Signal(str)
 
     def __init__(self, parent: QWidget | None = None) -> None:
-        super().__init__("Measurement", parent)
+        super().__init__("Magnification", parent)
+        form = QFormLayout(self)
+        self.selector = QComboBox()
+        self.selector.setEditable(True)
+        self.selector.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
+        for name in ("4x", "10x", "40x", "100x"):
+            self.selector.addItem(name)
+        self.status = QLabel("未标定")
+        form.addRow("Current", self.selector)
+        form.addRow("Calibration", self.status)
+        self.selector.activated.connect(self._emit_selected)
+        line_edit = self.selector.lineEdit()
+        if line_edit is not None:
+            line_edit.editingFinished.connect(self._emit_selected)
+
+    def set_profiles(self, names: tuple[str, ...], current: str | None) -> None:
+        existing = {self.selector.itemText(index) for index in range(self.selector.count())}
+        for name in names:
+            if name not in existing:
+                self.selector.addItem(name)
+        if current is not None:
+            self.selector.setEditText(current)
+
+    def select_magnification(self, name: str) -> None:
+        self.selector.setEditText(name)
+        self.magnification_changed.emit(name)
+
+    def set_calibration(self, calibration: Calibration | None) -> None:
+        if calibration is None:
+            self.status.setText("未标定")
+            return
+        self.status.setText(f"{calibration.units_per_pixel:.4g} {calibration.unit.value}/px")
+
+    def _emit_selected(self, _index: int = -1) -> None:
+        name = self.selector.currentText().strip()
+        if name:
+            self.magnification_changed.emit(name)
+
+
+class CalibrationPanel(QGroupBox):
+    calibrate_requested = Signal()
+    scale_bar_length_changed = Signal(float)
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__("Calibration", parent)
         form = QFormLayout(self)
         self.reference_length_spin = QDoubleSpinBox()
         self.reference_length_spin.setRange(0.001, 1_000_000)
@@ -212,14 +256,23 @@ class MeasurementPanel(QGroupBox):
         self.unit_combo = QComboBox()
         for unit in (Unit.MM, Unit.CM, Unit.IN, Unit.PX):
             self.unit_combo.addItem(unit.value, unit)
-        self.calibrate_button = QPushButton("Calibrate last line")
+        self.calibrate_button = QPushButton("Set calibration")
         self.scale_bar_box = QCheckBox("Scale bar")
         self.scale_bar_box.setEnabled(False)
+        self.scale_bar_length_spin = QDoubleSpinBox()
+        self.scale_bar_length_spin.setRange(0.001, 1_000_000)
+        self.scale_bar_length_spin.setDecimals(4)
+        self.scale_bar_length_spin.setValue(10.0)
+        self.scale_bar_length_spin.setEnabled(False)
         form.addRow("Known length", self.reference_length_spin)
         form.addRow("Unit", self.unit_combo)
         form.addRow(self.scale_bar_box)
+        form.addRow("Scale bar length", self.scale_bar_length_spin)
         form.addRow(self.calibrate_button)
         self.calibrate_button.clicked.connect(self.calibrate_requested.emit)
+        self.scale_bar_length_spin.editingFinished.connect(
+            lambda: self.scale_bar_length_changed.emit(self.scale_bar_length_spin.value())
+        )
 
     def selected_unit(self) -> Unit:
         value = self.unit_combo.currentData()
@@ -232,6 +285,17 @@ class MeasurementPanel(QGroupBox):
 
     def set_calibration_available(self, available: bool) -> None:
         self.scale_bar_box.setEnabled(available)
+        self.scale_bar_length_spin.setEnabled(available)
+
+    def set_scale_bar_length(self, length: float | None) -> None:
+        if length is None:
+            return
+        self.scale_bar_length_spin.blockSignals(True)
+        self.scale_bar_length_spin.setValue(length)
+        self.scale_bar_length_spin.blockSignals(False)
+
+
+MeasurementPanel = CalibrationPanel
 
 
 class ProjectPanel(QGroupBox):

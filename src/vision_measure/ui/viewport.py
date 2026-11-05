@@ -9,13 +9,17 @@ from PySide6.QtWidgets import QWidget
 from vision_measure.inspection.annotations import (
     DEFAULT_SCALE_BAR_POSITION,
     NormalizedPoint,
+    ScaleBarGeometry,
+    ScaleBarTooLong,
     build_scale_bar,
+    build_scale_bar_fixed,
 )
 from vision_measure.inspection.models import Calibration, Line, Point
 
 
 class ImageViewport(QWidget):
     line_finished = Signal(object)
+    calibration_finished = Signal(object)
     scale_bar_moved = Signal(object)
 
     def __init__(self, parent: QWidget | None = None) -> None:
@@ -25,9 +29,11 @@ class ImageViewport(QWidget):
         self._draw_start: Point | None = None
         self._draw_current: Point | None = None
         self._scale_bar_calibration: Calibration | None = None
+        self._scale_bar_length: float | None = None
         self._scale_bar_visible = False
         self._scale_bar_position = DEFAULT_SCALE_BAR_POSITION
         self._dragging_scale_bar = False
+        self._calibration_mode = False
         self._drag_image_origin: Point | None = None
         self._drag_position_origin = DEFAULT_SCALE_BAR_POSITION
         self.setMinimumSize(480, 320)
@@ -57,6 +63,16 @@ class ImageViewport(QWidget):
         self.update()
 
     @property
+    def calibration_mode(self) -> bool:
+        return self._calibration_mode
+
+    def set_calibration_mode(self, active: bool) -> None:
+        self._calibration_mode = active
+        self._draw_start = None
+        self._draw_current = None
+        self.update()
+
+    @property
     def scale_bar_position(self) -> NormalizedPoint:
         return self._scale_bar_position
 
@@ -65,8 +81,10 @@ class ImageViewport(QWidget):
         calibration: Calibration | None,
         visible: bool,
         position: NormalizedPoint | None = None,
+        length: float | None = None,
     ) -> None:
         self._scale_bar_calibration = calibration
+        self._scale_bar_length = length
         self._scale_bar_visible = visible and calibration is not None
         if position is not None:
             self._scale_bar_position = position
@@ -128,18 +146,9 @@ class ImageViewport(QWidget):
             )
 
     def _draw_scale_bar(self, painter: QPainter) -> None:
-        if (
-            not self._scale_bar_visible
-            or self._scale_bar_calibration is None
-            or self._image is None
-        ):
+        geometry = self._scale_bar_geometry()
+        if geometry is None or self._image is None:
             return
-        geometry = build_scale_bar(
-            self._image.width(),
-            self._image.height(),
-            self._scale_bar_calibration,
-            self._scale_bar_position,
-        )
         start = self._image_to_widget(geometry.start)
         end = self._image_to_widget(geometry.end)
         tick = geometry.tick_pixels * self._target_rect().width() / self._image.width()
@@ -163,7 +172,7 @@ class ImageViewport(QWidget):
         mapped = self.widget_to_image(position.x(), position.y())
         if mapped is None:
             return
-        if self._hit_scale_bar(position.x(), position.y()):
+        if not self._calibration_mode and self._hit_scale_bar(position.x(), position.y()):
             self._dragging_scale_bar = True
             self._drag_image_origin = Point(*mapped)
             self._drag_position_origin = self._scale_bar_position
@@ -174,10 +183,15 @@ class ImageViewport(QWidget):
             self._draw_current = point
             self.update()
             return
-        self.line_finished.emit(Line(self._draw_start, point))
+        line = Line(self._draw_start, point)
         self._draw_start = None
         self._draw_current = None
         self.update()
+        if self._calibration_mode:
+            self._calibration_mode = False
+            self.calibration_finished.emit(line)
+        else:
+            self.line_finished.emit(line)
 
     def mouseMoveEvent(self, event: QMouseEvent) -> None:
         if self._dragging_scale_bar:
@@ -185,12 +199,14 @@ class ImageViewport(QWidget):
             mapped = self.widget_to_image(position.x(), position.y())
             if mapped is None or self._image is None or self._drag_image_origin is None:
                 return
-            x = self._drag_position_origin.x + (
-                mapped[0] - self._drag_image_origin.x
-            ) / self._image.width()
-            y = self._drag_position_origin.y + (
-                mapped[1] - self._drag_image_origin.y
-            ) / self._image.height()
+            x = (
+                self._drag_position_origin.x
+                + (mapped[0] - self._drag_image_origin.x) / self._image.width()
+            )
+            y = (
+                self._drag_position_origin.y
+                + (mapped[1] - self._drag_image_origin.y) / self._image.height()
+            )
             self._scale_bar_position = NormalizedPoint(
                 min(max(x, 0.0), 1.0),
                 min(max(y, 0.0), 1.0),
@@ -206,27 +222,15 @@ class ImageViewport(QWidget):
             self.update()
 
     def mouseReleaseEvent(self, event: QMouseEvent) -> None:
-        if (
-            event.button() == Qt.MouseButton.LeftButton
-            and self._dragging_scale_bar
-        ):
+        if event.button() == Qt.MouseButton.LeftButton and self._dragging_scale_bar:
             self._dragging_scale_bar = False
             self._drag_image_origin = None
             self.scale_bar_moved.emit(self._scale_bar_position)
 
     def _hit_scale_bar(self, x: float, y: float) -> bool:
-        if (
-            not self._scale_bar_visible
-            or self._scale_bar_calibration is None
-            or self._image is None
-        ):
+        geometry = self._scale_bar_geometry()
+        if geometry is None:
             return False
-        geometry = build_scale_bar(
-            self._image.width(),
-            self._image.height(),
-            self._scale_bar_calibration,
-            self._scale_bar_position,
-        )
         start = self._image_to_widget(geometry.start)
         end = self._image_to_widget(geometry.end)
         dx = end.x() - start.x()
@@ -238,8 +242,30 @@ class ImageViewport(QWidget):
         nearest_x = start.x() + t * dx
         nearest_y = start.y() + t * dy
         near_line = (x - nearest_x) ** 2 + (y - nearest_y) ** 2 <= 18**2
-        near_label = (
-            start.x() - 8 <= x <= end.x() + 8
-            and start.y() - 32 <= y <= start.y() + 16
-        )
+        near_label = start.x() - 8 <= x <= end.x() + 8 and start.y() - 32 <= y <= start.y() + 16
         return near_line or near_label
+
+    def _scale_bar_geometry(self) -> ScaleBarGeometry | None:
+        if (
+            not self._scale_bar_visible
+            or self._scale_bar_calibration is None
+            or self._image is None
+        ):
+            return None
+        try:
+            if self._scale_bar_length is None:
+                return build_scale_bar(
+                    self._image.width(),
+                    self._image.height(),
+                    self._scale_bar_calibration,
+                    self._scale_bar_position,
+                )
+            return build_scale_bar_fixed(
+                self._image.width(),
+                self._image.height(),
+                self._scale_bar_calibration,
+                self._scale_bar_length,
+                self._scale_bar_position,
+            )
+        except ScaleBarTooLong:
+            return None

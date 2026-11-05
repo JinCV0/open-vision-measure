@@ -98,8 +98,9 @@ change only after `应用`.
 
 The same geometry and style object drive both renderers:
 
-- `ui/viewport.py` draws with Qt.
-- `inspection/scale_bar.py` draws with OpenCV for screenshots.
+- `ui/scale_bar_painter.py` draws the live canvas through Qt.
+- `inspection/scale_bar_renderer.py` draws with OpenCV for previews and
+  screenshots.
 
 Horizontal and vertical geometry use the same physical length conversion and
 bounds checking. If the bar does not fit, the operation fails rather than

@@ -39,13 +39,20 @@
 
 ### 比例尺
 
-- 用户输入固定物理长度，不使用不可见自动长度替代。
-- 比例尺长度输入框显示当前单位，例如 `10.0000 微米`。
-- 勾选比例尺时提交输入框中的固定长度。
-- 实时画布和保存截图共用同一个几何函数。
+- 标定卡片提供 `比例尺` 开关和独立的 `比例尺设置…` 窗口。
+- 设置窗口包括实时预览、五种预设、四种形态、水平/垂直方向、
+  标签位置与显隐、描边、四组颜色、整体透明度、底板样式与透明度、
+  线宽、刻度长度、字号、分段数量和 3×3 九宫格位置。
+- 五种预设为 `简洁线`、`科研描边`、`分段标尺`、`Material 绿`、`紧凑括号`。
+- 物理长度按倍率独立保存；视觉样式和位置作为全局偏好保存。
+- 比例尺必须有明确的固定物理长度。缺少固定长度时不绘制，也不会自动拟合
+  一个不同的长度。
+- 修改标定单位会清除旧标定及旧比例尺长度；重新标定并启用比例尺时使用
+  `10.0` 当前单位作为可见的固定默认值。
+- 实时画布和保存截图使用同一套样式模型与几何计算。
 - 比例尺可拖动，位置按归一化图像坐标保存。
 - 截图使用 OpenCV 可渲染的 ASCII 单位标签，微米显示为 `um`。
-- 切换倍率或修改标定单位后，比例尺使用新的当前标定，不沿用旧单位。
+- 全局偏好 schema v2 保存比例尺样式；v1 偏好可自动迁移。
 
 ### 项目数据
 
@@ -59,6 +66,7 @@
 - 60-30-10 配色、统一间距、圆角和 12/14/18px 字号。
 - 跟随系统浅色/深色模式。
 - 中文界面；驱动和格式技术名保留原文。
+- 比例尺设置使用独立弹窗，浅色、深色及 100%/150% 缩放布局均通过检查。
 
 ## AI 功能状态
 
@@ -82,8 +90,8 @@ release/0.3.0/windows-x64
 
 | 文件 | 大小 | SHA-256 |
 | --- | ---: | --- |
-| `OpenVisionMeasure.exe` | 99,183,137 bytes | `bb0925884d91c6f562424be7718ea4afd7a60fa99443c931e241bb0c1f5dc16c` |
-| `OpenVisionMeasure-0.3.0-win64.zip` | 98,604,872 bytes | `34bf32aac7f3762130335a2b2ddc2473329cf8afd7d12bf47720e0775310c44e` |
+| `OpenVisionMeasure.exe` | 99,217,119 bytes | `d62dd1200133ede4104eed4414bbfcd5cedc8508fb7f42618f09b9a21fdfa282` |
+| `OpenVisionMeasure-0.3.0-win64.zip` | 98,638,415 bytes | `356656c5b3c2c9e7422ddd3ceb34a8cc7a094b8f0e1271cb498bc0bcd69b4ada` |
 
 Python 包：
 
@@ -96,12 +104,13 @@ EXE 没有 Authenticode 数字签名，Windows SmartScreen 可能显示未知发
 
 ## 测试与验证
 
-本次实际执行：
+比例尺工作室完成后实际执行：
 
 ```text
 ruff: passed
-mypy strict: passed, 28 source files
-pytest: 71 passed
+mypy strict: passed, 35 source files
+pytest: 96 passed
+light/dark and 100%/150% native renders: passed
 wheel/sdist: passed
 PyInstaller EXE: passed
 packaged smoke: passed
@@ -141,7 +150,7 @@ pwsh -NoProfile -File scripts/build_windows.ps1 -Version 0.3.0
 
 ## 下一步优先级
 
-1. 用真实电子目镜完成比例尺和微米单位的端到端验收。
+1. 用真实电子目镜完成比例尺工作室和微米单位的端到端验收。
 2. 完成 60 秒预览稳定性测试。
 3. 根据真实切片反馈继续增强面积、周长和统计功能。
 4. AI 背景去除保持在核心应用之外。

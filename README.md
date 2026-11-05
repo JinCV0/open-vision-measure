@@ -12,10 +12,13 @@ not contain code, assets, or models from JCameraPro.
 
 Open Vision Measure 是一个本地优先的显微镜图像观察、标定、测量和截图工具，
 面向植物组织切片等科研场景。界面支持中文、浅色/深色主题、多物镜倍率独立标定、
-微米等物理单位。项目采用 Apache-2.0 许可证，不包含 JCameraPro 的代码、资源或
-模型。当前版本不提供自动背景去除或 AI 主体分割。
+微米等物理单位，以及带实时预览的独立比例尺设置窗口。项目采用 Apache-2.0
+许可证，不包含 JCameraPro 的代码、资源或模型。当前版本不提供自动背景去除或
+AI 主体分割。
 
 ![Open Vision Measure microscope workflow](docs/images/micrometre-workflow.png)
+
+![Scale Bar Studio](docs/images/scale-bar-studio.png)
 
 ## Core MVP
 
@@ -26,7 +29,10 @@ Open Vision Measure 是一个本地优先的显微镜图像观察、标定、测
 - Brightness, contrast, temperature, tint, grayscale, and edge preview.
 - Two-click line measurement in image coordinates.
 - Per-magnification physical calibration from a two-click reference.
-- Optional draggable fixed-length scale bar in live and saved images.
+- Dedicated scale-bar studio with live preview, five presets, four shapes,
+  horizontal/vertical orientation, labels, colors, backgrounds, opacity, sizing,
+  nine-position placement, and matching live/saved rendering.
+- Fixed physical scale-bar length stored independently for each magnification.
 - Persistent screenshot folder with automatic `capture_0001` sequencing.
 - Project save/load and CSV measurement export.
 - Unicode Windows paths for screenshots and project files.
@@ -74,6 +80,8 @@ calculates SHA-256, and creates a distributable ZIP under
 - [Core MVP design](docs/superpowers/specs/2026-11-02-open-vision-measure-design.md)
 - [Implementation plan](docs/superpowers/plans/2026-11-02-core-mvp.md)
 - [Microscope workflow spec](docs/superpowers/specs/2026-11-05-microscope-workflow.md)
+- [Scale Bar Studio spec](docs/superpowers/specs/2026-11-05-scale-bar-studio.md)
+- [Scale Bar Studio implementation plan](docs/superpowers/plans/2026-11-05-scale-bar-studio.md)
 
 ## Contributing and security
 

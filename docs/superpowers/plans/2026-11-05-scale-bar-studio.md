@@ -26,6 +26,7 @@
 
 **Files:**
 - Create: `src/vision_measure/inspection/scale_bar.py`
+- Create: `src/vision_measure/inspection/scale_bar_renderer.py`
 - Create: `tests/unit/test_scale_bar_style.py`
 
 **Interfaces:**
@@ -144,7 +145,7 @@ Set `SCHEMA_VERSION = 2`; accept `1` and `2` when loading. Version 1 uses
 ### Task 3: Styled Geometry and Screenshot Rendering
 
 **Files:**
-- Modify: `src/vision_measure/inspection/scale_bar.py`
+- Modify: `src/vision_measure/inspection/scale_bar_renderer.py`
 - Modify: `src/vision_measure/workspace/screenshot.py`
 - Modify: `tests/unit/test_scale_bar_style.py`
 - Modify: `tests/unit/test_screenshot.py`
@@ -304,6 +305,7 @@ Material theme; no local QSS.
 - Modify: `src/vision_measure/ui/panels.py`
 - Modify: `src/vision_measure/ui/microscope.py`
 - Modify: `src/vision_measure/ui/viewport.py`
+- Create: `src/vision_measure/ui/scale_bar_painter.py`
 - Modify: `src/vision_measure/ui/main_window.py`
 - Modify: `src/vision_measure/ui/screenshot_flow.py`
 - Modify: `tests/ui/test_calibration_flow.py`

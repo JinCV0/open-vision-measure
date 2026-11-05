@@ -10,6 +10,16 @@
 
 **Spec:** `docs/superpowers/specs/2026-11-05-microscope-workflow.md`
 
+## Execution Status
+
+As of 2026-11-05:
+
+- Tasks 1-9 are implemented and covered by the local test gate.
+- Task 10 is locally complete through wheel/sdist, AI-enabled EXE, basic smoke,
+  AI runtime smoke, and packaged real-model inference smoke.
+- Real plant-tissue quality validation, the 20-image acceptance set, model-weight
+  redistribution review, remote push, and GitHub Release remain pending.
+
 ## Global Constraints
 
 - Application code uses Apache-2.0; do not copy GPL/AGPL application code.

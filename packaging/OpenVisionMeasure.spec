@@ -6,6 +6,12 @@ from pathlib import Path
 from PyInstaller.utils.hooks import collect_submodules, copy_metadata
 
 root = Path(SPECPATH).resolve().parent
+theme_datas = [
+    (
+        str(root / "src" / "vision_measure" / "ui" / "assets"),
+        "vision_measure/ui/assets",
+    )
+]
 ai_hidden_imports = []
 ai_datas = []
 if os.environ.get("OVM_WITH_AI") == "1":
@@ -23,7 +29,7 @@ analysis = Analysis(
     [str(root / "scripts" / "exe_entry.py")],
     pathex=[str(root / "src")],
     binaries=[],
-    datas=ai_datas,
+    datas=[*theme_datas, *ai_datas],
     hiddenimports=ai_hidden_imports,
     hookspath=[],
     hooksconfig={},

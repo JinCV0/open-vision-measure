@@ -1,0 +1,297 @@
+QWidget {
+    color: @{text_primary};
+    font-family: "Segoe UI Variable Text", "Segoe UI";
+    font-size: 14px;
+}
+
+QMainWindow, QDialog, QWidget#AppRoot {
+    background-color: @{surface};
+}
+
+QWidget#ShellColumn, QWidget#SidebarContent,
+QScrollArea#SidebarScroll, QScrollArea#SidebarScroll > QWidget > QWidget {
+    background-color: transparent;
+}
+
+QScrollArea#SidebarScroll {
+    border: none;
+}
+
+QFrame#PreviewCard, QWidget[materialRole="card"] {
+    background-color: @{card};
+    border: 1px solid @{outline_variant};
+    border-radius: 24px;
+}
+
+QFrame#PreviewCard {
+    border-radius: 28px;
+}
+
+QGroupBox {
+    background-color: @{card};
+    border: 1px solid @{outline_variant};
+    border-radius: 24px;
+    margin-top: 0;
+    padding-top: 44px;
+}
+
+QGroupBox::title {
+    subcontrol-origin: border;
+    subcontrol-position: top left;
+    top: 14px;
+    left: 20px;
+    padding: 0;
+    background-color: transparent;
+    color: @{text_primary};
+    font-size: 18px;
+    font-weight: 600;
+}
+
+QLabel {
+    background-color: transparent;
+}
+
+QLabel[materialRole="value"] {
+    min-width: 44px;
+    color: @{text_secondary};
+    font-size: 12px;
+    font-weight: 600;
+}
+
+QPushButton {
+    min-height: 24px;
+    padding: 7px 14px;
+    border: 2px solid transparent;
+    border-radius: 20px;
+    background-color: @{primary_container};
+    color: @{on_primary_container};
+    font-weight: 600;
+}
+
+QPushButton:hover {
+    background-color: @{container_hover};
+}
+
+QPushButton:pressed {
+    background-color: @{container_pressed};
+}
+
+QPushButton:focus {
+    border-color: @{focus};
+}
+
+QPushButton:checked {
+    background-color: @{primary};
+    color: @{on_primary};
+}
+
+QPushButton[materialAppearance="primary"] {
+    background-color: @{primary};
+    color: @{on_primary};
+}
+
+QPushButton[materialAppearance="primary"]:hover {
+    background-color: @{primary_hover};
+}
+
+QPushButton[materialAppearance="primary"]:pressed {
+    background-color: @{primary_pressed};
+}
+
+QPushButton[materialAppearance="text"] {
+    background-color: transparent;
+    color: @{primary};
+}
+
+QPushButton[materialAppearance="text"]:hover {
+    background-color: @{primary_container};
+}
+
+QPushButton:disabled {
+    background-color: @{surface_variant};
+    color: @{outline};
+}
+
+QComboBox, QSpinBox, QDoubleSpinBox {
+    min-height: 24px;
+    padding: 5px 8px;
+    border: 2px solid @{outline_variant};
+    border-radius: 12px;
+    background-color: @{card};
+    color: @{text_primary};
+    selection-background-color: @{primary};
+    selection-color: @{on_primary};
+}
+
+QSpinBox, QDoubleSpinBox {
+    padding-right: 30px;
+}
+
+QComboBox:hover, QSpinBox:hover, QDoubleSpinBox:hover {
+    border-color: @{outline};
+}
+
+QComboBox:focus, QSpinBox:focus, QDoubleSpinBox:focus {
+    border-color: @{focus};
+}
+
+QComboBox:disabled, QSpinBox:disabled, QDoubleSpinBox:disabled {
+    background-color: @{surface_variant};
+    color: @{outline};
+}
+
+QComboBox::drop-down {
+    width: 28px;
+    border: none;
+    background: transparent;
+}
+
+QComboBox::down-arrow {
+    image: url(@{chevron_down_icon});
+    width: 12px;
+    height: 12px;
+}
+
+QSpinBox::up-button, QDoubleSpinBox::up-button {
+    subcontrol-origin: border;
+    subcontrol-position: top right;
+    width: 24px;
+    margin: 2px 2px 0 0;
+    border: none;
+    border-top-right-radius: 10px;
+    background: transparent;
+}
+
+QSpinBox::down-button, QDoubleSpinBox::down-button {
+    subcontrol-origin: border;
+    subcontrol-position: bottom right;
+    width: 24px;
+    margin: 0 2px 2px 0;
+    border: none;
+    border-bottom-right-radius: 10px;
+    background: transparent;
+}
+
+QSpinBox::up-button:hover, QDoubleSpinBox::up-button:hover,
+QSpinBox::down-button:hover, QDoubleSpinBox::down-button:hover {
+    background-color: @{primary_container};
+}
+
+QSpinBox::up-arrow, QDoubleSpinBox::up-arrow {
+    image: url(@{chevron_up_icon});
+    width: 10px;
+    height: 10px;
+}
+
+QSpinBox::down-arrow, QDoubleSpinBox::down-arrow {
+    image: url(@{chevron_down_icon});
+    width: 10px;
+    height: 10px;
+}
+
+QComboBox QAbstractItemView {
+    padding: 4px;
+    border: 1px solid @{outline_variant};
+    border-radius: 12px;
+    background-color: @{card};
+    color: @{text_primary};
+    selection-background-color: @{primary_container};
+    selection-color: @{on_primary_container};
+}
+
+QCheckBox {
+    spacing: 8px;
+    color: @{text_primary};
+}
+
+QCheckBox::indicator {
+    width: 18px;
+    height: 18px;
+    border: 2px solid @{outline};
+    border-radius: 6px;
+    background-color: @{card};
+}
+
+QCheckBox::indicator:hover {
+    border-color: @{primary};
+}
+
+QCheckBox::indicator:checked {
+    border-color: @{primary};
+    background-color: @{primary};
+    image: url(@{check_icon});
+}
+
+QCheckBox::indicator:focus {
+    border-color: @{focus};
+}
+
+QCheckBox::indicator:disabled {
+    border-color: @{outline_variant};
+    background-color: @{surface_variant};
+}
+
+QSlider::groove:horizontal {
+    height: 4px;
+    border-radius: 2px;
+    background-color: @{outline_variant};
+}
+
+QSlider::sub-page:horizontal {
+    border-radius: 2px;
+    background-color: @{primary};
+}
+
+QSlider::handle:horizontal {
+    width: 18px;
+    height: 18px;
+    margin: -7px 0;
+    border: none;
+    border-radius: 9px;
+    background-color: @{primary};
+}
+
+QSlider::handle:horizontal:hover {
+    background-color: @{primary_hover};
+}
+
+QSlider::handle:horizontal:disabled {
+    background-color: @{outline};
+}
+
+QStatusBar {
+    min-height: 28px;
+    border-top: 1px solid @{outline_variant};
+    background-color: @{surface};
+    color: @{text_secondary};
+    font-size: 12px;
+}
+
+QScrollBar:vertical {
+    width: 8px;
+    margin: 0;
+    border: none;
+    background: transparent;
+}
+
+QScrollBar::handle:vertical {
+    min-height: 32px;
+    border-radius: 4px;
+    background-color: @{outline_variant};
+}
+
+QScrollBar::handle:vertical:hover {
+    background-color: @{outline};
+}
+
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+    height: 0;
+}
+
+QToolTip {
+    padding: 6px 8px;
+    border: none;
+    border-radius: 8px;
+    background-color: @{text_primary};
+    color: @{surface};
+}

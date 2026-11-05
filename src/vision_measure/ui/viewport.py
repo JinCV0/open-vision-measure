@@ -3,7 +3,7 @@ from __future__ import annotations
 import cv2
 import numpy as np
 from PySide6.QtCore import QPointF, QRectF, Qt, Signal
-from PySide6.QtGui import QColor, QImage, QMouseEvent, QPainter, QPen
+from PySide6.QtGui import QColor, QImage, QMouseEvent, QPainter, QPainterPath, QPalette, QPen
 from PySide6.QtWidgets import QWidget
 
 from vision_measure.inspection.annotations import (
@@ -15,6 +15,7 @@ from vision_measure.inspection.annotations import (
     build_scale_bar_fixed,
 )
 from vision_measure.inspection.models import Calibration, Line, Point
+from vision_measure.ui.theme import viewport_background
 
 
 class ImageViewport(QWidget):
@@ -138,7 +139,11 @@ class ImageViewport(QWidget):
     def paintEvent(self, event: object) -> None:
         del event
         painter = QPainter(self)
-        painter.fillRect(self.rect(), QColor("#101418"))
+        dark = self.palette().color(QPalette.ColorRole.Window).lightness() < 128
+        clip = QPainterPath()
+        clip.addRoundedRect(QRectF(self.rect()).adjusted(1, 1, -1, -1), 22, 22)
+        painter.setClipPath(clip)
+        painter.fillRect(self.rect(), QColor(viewport_background(dark)))
         if self._image is None:
             return
         target = self._target_rect()

@@ -2,13 +2,15 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import QTimer
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QCloseEvent
 from PySide6.QtWidgets import (
     QFileDialog,
+    QFrame,
     QHBoxLayout,
     QMainWindow,
     QMessageBox,
+    QScrollArea,
     QVBoxLayout,
     QWidget,
 )
@@ -87,16 +89,26 @@ class MainWindow(QMainWindow):
 
     def _build_ui(self) -> None:
         central = QWidget(self)
+        central.setObjectName("AppRoot")
         root = QHBoxLayout(central)
-        root.setContentsMargins(12, 12, 12, 12)
-        root.setSpacing(12)
+        root.setContentsMargins(24, 24, 24, 24)
+        root.setSpacing(16)
 
-        left = QVBoxLayout()
+        left_column = QWidget()
+        left_column.setObjectName("ShellColumn")
+        left = QVBoxLayout(left_column)
+        left.setContentsMargins(0, 0, 0, 0)
+        left.setSpacing(16)
         self.camera_bar = CameraControlBar()
         left.addWidget(self.camera_bar)
+        preview_card = QFrame()
+        preview_card.setObjectName("PreviewCard")
+        preview = QVBoxLayout(preview_card)
+        preview.setContentsMargins(8, 8, 8, 8)
         self.viewport = ImageViewport()
-        left.addWidget(self.viewport, 1)
-        root.addLayout(left, 1)
+        preview.addWidget(self.viewport)
+        left.addWidget(preview_card, 1)
+        root.addWidget(left_column, 1)
 
         self.image_panel = ImagePanel()
         self.magnification_panel = MagnificationPanel()
@@ -104,13 +116,24 @@ class MainWindow(QMainWindow):
         self.calibration_status = self.magnification_panel.status
         self.calibration_panel = CalibrationPanel()
         self.project_panel = ProjectPanel()
-        controls = QVBoxLayout()
+        sidebar_content = QWidget()
+        sidebar_content.setObjectName("SidebarContent")
+        controls = QVBoxLayout(sidebar_content)
+        controls.setContentsMargins(0, 0, 0, 0)
+        controls.setSpacing(16)
         controls.addWidget(self.magnification_panel)
         controls.addWidget(self.image_panel)
         controls.addWidget(self.calibration_panel)
         controls.addWidget(self.project_panel)
         controls.addStretch(1)
-        root.addLayout(controls)
+        sidebar = QScrollArea()
+        sidebar.setObjectName("SidebarScroll")
+        sidebar.setWidgetResizable(True)
+        sidebar.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        sidebar.setWidget(sidebar_content)
+        sidebar.setMinimumWidth(360)
+        sidebar.setMaximumWidth(400)
+        root.addWidget(sidebar)
         self.setCentralWidget(central)
         self.statusBar().showMessage("Idle")
 

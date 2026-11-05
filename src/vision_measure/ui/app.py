@@ -10,6 +10,7 @@ from pathlib import Path
 from PySide6.QtWidgets import QApplication
 
 from vision_measure.ui.main_window import MainWindow
+from vision_measure.ui.theme import MaterialThemeManager
 
 
 def is_smoke_test(arguments: Sequence[str]) -> bool:
@@ -62,6 +63,7 @@ def main(arguments: Sequence[str] | None = None) -> int:
         return 0 if _can_run_ai_model() else 1
     app = QApplication(cli_arguments)
     app.setApplicationName("Open Vision Measure")
+    MaterialThemeManager(app)
     window = MainWindow()
     if is_smoke_test(cli_arguments):
         window.close()

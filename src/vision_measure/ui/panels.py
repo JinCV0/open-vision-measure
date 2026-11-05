@@ -19,6 +19,11 @@ from PySide6.QtWidgets import (
 from vision_measure.camera.models import CameraApi, CameraDevice, CaptureConfig
 from vision_measure.inspection.models import Calibration, Unit
 from vision_measure.inspection.processing import ImageSettings
+from vision_measure.ui.theme import (
+    configure_card_layout,
+    configure_form_layout,
+    set_material_property,
+)
 
 
 class CameraControlBar(QWidget):
@@ -29,11 +34,19 @@ class CameraControlBar(QWidget):
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
-        layout = QHBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
+        set_material_property(self, "materialRole", "card")
+        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        layout = QVBoxLayout(self)
+        configure_card_layout(layout)
+        layout.setContentsMargins(20, 20, 20, 20)
+        top_row = QHBoxLayout()
+        top_row.setSpacing(8)
+        bottom_row = QHBoxLayout()
+        bottom_row.setSpacing(8)
         self.camera_combo = QComboBox()
         self.camera_combo.setMinimumWidth(180)
         self.api_combo = QComboBox()
+        self.api_combo.setMinimumWidth(140)
         for label, api in (
             ("Auto", CameraApi.AUTO),
             ("Media Foundation", CameraApi.MSMF),
@@ -47,26 +60,33 @@ class CameraControlBar(QWidget):
         self.fps_spin.setRange(0, 240)
         self.fps_spin.setValue(0)
         self.fps_spin.setSpecialValueText("Best")
+        self.fps_spin.setMaximumWidth(80)
         self.refresh_button = QPushButton("Refresh")
         self.start_button = QPushButton("Start")
         self.stop_button = QPushButton("Stop")
         self.freeze_button = QPushButton("Freeze")
-        for widget in (
-            QLabel("Camera"),
-            self.camera_combo,
-            self.api_combo,
-            self.width_spin,
-            QLabel("x"),
-            self.height_spin,
-            QLabel("FPS"),
-            self.fps_spin,
+        top_row.addWidget(QLabel("Camera"))
+        top_row.addWidget(self.camera_combo, 1)
+        top_row.addWidget(self.api_combo)
+        bottom_row.addWidget(self.width_spin)
+        bottom_row.addWidget(QLabel("x"))
+        bottom_row.addWidget(self.height_spin)
+        bottom_row.addWidget(QLabel("FPS"))
+        bottom_row.addWidget(self.fps_spin)
+        bottom_row.addStretch(1)
+        bottom_row.addWidget(self.refresh_button)
+        bottom_row.addWidget(self.start_button)
+        bottom_row.addWidget(self.stop_button)
+        bottom_row.addWidget(self.freeze_button)
+        layout.addLayout(top_row)
+        layout.addLayout(bottom_row)
+        set_material_property(self.start_button, "materialAppearance", "primary")
+        for button in (
             self.refresh_button,
-            self.start_button,
             self.stop_button,
             self.freeze_button,
         ):
-            layout.addWidget(widget)
-        layout.addStretch(1)
+            set_material_property(button, "materialAppearance", "text")
         self.refresh_button.clicked.connect(self.refresh_requested.emit)
         self.start_button.clicked.connect(self.start_requested.emit)
         self.stop_button.clicked.connect(self.stop_requested.emit)
@@ -78,6 +98,7 @@ class CameraControlBar(QWidget):
         spin.setRange(minimum, maximum)
         spin.setValue(value)
         spin.setSpecialValueText("Best")
+        spin.setMaximumWidth(100)
         return spin
 
     def selected_api(self) -> CameraApi:
@@ -114,6 +135,7 @@ class ImagePanel(QGroupBox):
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__("Image", parent)
         form = QFormLayout(self)
+        configure_form_layout(form)
         self.brightness_slider = QSlider(Qt.Orientation.Horizontal)
         self.brightness_slider.setRange(-100, 100)
         self.brightness_value = QLabel("0")
@@ -132,6 +154,14 @@ class ImagePanel(QGroupBox):
         self.screenshot_button = QPushButton("Save screenshot")
         self.ai_screenshot_button = QPushButton("AI screenshot")
         self.folder_button = QPushButton("Folder")
+        for value in (
+            self.brightness_value,
+            self.contrast_value,
+            self.temperature_value,
+            self.tint_value,
+        ):
+            set_material_property(value, "materialRole", "value")
+        set_material_property(self.folder_button, "materialAppearance", "text")
         form.addRow("Brightness", self._slider_row(self.brightness_slider, self.brightness_value))
         form.addRow("Contrast", self._slider_row(self.contrast_slider, self.contrast_value))
         form.addRow(
@@ -209,12 +239,14 @@ class MagnificationPanel(QGroupBox):
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__("Magnification", parent)
         form = QFormLayout(self)
+        configure_form_layout(form)
         self.selector = QComboBox()
         self.selector.setEditable(True)
         self.selector.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
         for name in ("4x", "10x", "40x", "100x"):
             self.selector.addItem(name)
         self.status = QLabel("未标定")
+        set_material_property(self.status, "materialRole", "value")
         form.addRow("Current", self.selector)
         form.addRow("Calibration", self.status)
         self.selector.activated.connect(self._emit_selected)
@@ -254,6 +286,7 @@ class CalibrationPanel(QGroupBox):
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__("Calibration", parent)
         form = QFormLayout(self)
+        configure_form_layout(form)
         self.reference_length_spin = QDoubleSpinBox()
         self.reference_length_spin.setRange(0.001, 1_000_000)
         self.reference_length_spin.setDecimals(4)
@@ -263,6 +296,7 @@ class CalibrationPanel(QGroupBox):
             self.unit_combo.addItem(unit.value, unit)
         self.measure_button = QPushButton("Measure")
         self.measure_button.setCheckable(True)
+        set_material_property(self.measure_button, "materialAppearance", "primary")
         self.calibrate_button = QPushButton("Set calibration")
         self.scale_bar_box = QCheckBox("Scale bar")
         self.scale_bar_box.setEnabled(False)
@@ -320,9 +354,12 @@ class ProjectPanel(QGroupBox):
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__("Project", parent)
         layout = QVBoxLayout(self)
+        configure_card_layout(layout)
         self.save_button = QPushButton("Save project")
         self.load_button = QPushButton("Load project")
         self.export_button = QPushButton("Export CSV")
+        for button in (self.save_button, self.load_button, self.export_button):
+            set_material_property(button, "materialAppearance", "text")
         layout.addWidget(self.save_button)
         layout.addWidget(self.load_button)
         layout.addWidget(self.export_button)

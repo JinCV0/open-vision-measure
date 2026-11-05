@@ -26,6 +26,7 @@ from vision_measure.inspection.models import (
     Unit,
 )
 from vision_measure.inspection.processing import ImageSettings, process_frame
+from vision_measure.inspection.scale_bar import ScaleBarStyle
 from vision_measure.workspace.models import (
     MeasurementRecord,
     ProjectDocument,
@@ -275,6 +276,7 @@ class Workspace:
         scale_bar_enabled: bool = False,
         scale_bar_position: NormalizedPoint = DEFAULT_SCALE_BAR_POSITION,
         scale_bar_length: float | None = None,
+        scale_bar_style: ScaleBarStyle | None = None,
     ) -> None:
         frame = self.display_frame
         if frame is None:
@@ -285,6 +287,7 @@ class Workspace:
             scale_bar_enabled=scale_bar_enabled,
             scale_bar_position=scale_bar_position,
             scale_bar_length=scale_bar_length,
+            scale_bar_style=scale_bar_style,
         )
 
     def _save_image(
@@ -294,6 +297,7 @@ class Workspace:
         scale_bar_enabled: bool = False,
         scale_bar_position: NormalizedPoint = DEFAULT_SCALE_BAR_POSITION,
         scale_bar_length: float | None = None,
+        scale_bar_style: ScaleBarStyle | None = None,
     ) -> None:
         try:
             save_capture(
@@ -303,6 +307,7 @@ class Workspace:
                 scale_bar_enabled=scale_bar_enabled,
                 scale_bar_position=scale_bar_position,
                 scale_bar_length=scale_bar_length,
+                scale_bar_style=scale_bar_style,
             )
         except ScreenshotError as exc:
             raise ExportError(f"cannot write image: {path}") from exc

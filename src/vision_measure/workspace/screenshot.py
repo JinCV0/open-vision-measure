@@ -12,6 +12,7 @@ from vision_measure.inspection.annotations import (
     draw_scale_bar,
 )
 from vision_measure.inspection.models import Calibration
+from vision_measure.inspection.scale_bar import ScaleBarStyle, render_scale_bar
 from vision_measure.workspace.preferences import IMAGE_EXTENSIONS
 
 
@@ -47,6 +48,7 @@ def save_capture(
     scale_bar_enabled: bool = False,
     scale_bar_position: NormalizedPoint = DEFAULT_SCALE_BAR_POSITION,
     scale_bar_length: float | None = None,
+    scale_bar_style: ScaleBarStyle | None = None,
 ) -> Path:
     if image.ndim != 3 or image.shape[2] != 3:
         raise ScreenshotError("image must be an HxWx3 BGR image")
@@ -54,12 +56,21 @@ def save_capture(
     if scale_bar_enabled:
         if calibration is None:
             raise ScreenshotError("scale bar requires calibration")
-        rendered = draw_scale_bar(
-            image,
-            calibration,
-            scale_bar_position,
-            fixed_length=scale_bar_length,
-        )
+        if scale_bar_style is not None and scale_bar_length is not None:
+            rendered = render_scale_bar(
+                image,
+                calibration,
+                scale_bar_length,
+                scale_bar_position,
+                scale_bar_style,
+            )
+        else:
+            rendered = draw_scale_bar(
+                image,
+                calibration,
+                scale_bar_position,
+                fixed_length=scale_bar_length,
+            )
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     extension = path.suffix.lower()

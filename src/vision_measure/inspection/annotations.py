@@ -114,9 +114,7 @@ def draw_scale_bar(
     if fixed_length is None:
         geometry = build_scale_bar(width, height, calibration, position)
     else:
-        geometry = build_scale_bar_fixed(
-            width, height, calibration, fixed_length, position
-        )
+        geometry = build_scale_bar_fixed(width, height, calibration, fixed_length, position)
     rendered = image.copy()
     start = (round(geometry.start.x), round(geometry.start.y))
     end = (round(geometry.end.x), round(geometry.end.y))

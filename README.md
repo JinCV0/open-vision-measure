@@ -1,9 +1,22 @@
 # Open Vision Measure
 
+[![CI](https://github.com/JinCV0/open-vision-measure/actions/workflows/ci.yml/badge.svg)](https://github.com/JinCV0/open-vision-measure/actions/workflows/ci.yml)
+[![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+[![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](pyproject.toml)
+
 Open Vision Measure is a local-first microscope imaging and measurement
 workbench for plant tissue sections. It is an independent, clean-room
 implementation inspired by the workflow of camera measurement software; it does
 not contain code, assets, or models from JCameraPro.
+
+## 中文简介
+
+Open Vision Measure 是一个本地优先的显微镜图像观察、标定、测量和截图工具，
+面向植物组织切片等科研场景。界面支持中文、浅色/深色主题、多物镜倍率独立标定、
+微米等物理单位，以及可选的 BiRefNet 主体提取。项目采用 Apache-2.0 许可证，
+不包含 JCameraPro 的代码、资源或模型。
+
+![Open Vision Measure microscope workflow](docs/images/micrometre-workflow.png)
 
 ## Core MVP
 
@@ -81,6 +94,13 @@ the AI runtime; the application remains usable through original-image fallback.
 - [Implementation plan](docs/superpowers/plans/2026-11-02-core-mvp.md)
 - [Microscope workflow spec](docs/superpowers/specs/2026-11-05-microscope-workflow.md)
 - [AI spike measurements](docs/ai-spike-2026-11-05.md)
+
+## Contributing and security
+
+- [Contributing guide](CONTRIBUTING.md)
+- [Security policy](SECURITY.md)
+- [Code of conduct](CODE_OF_CONDUCT.md)
+- [Development status](HANDOFF.md)
 
 ## License
 

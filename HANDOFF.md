@@ -79,7 +79,7 @@
 目录：
 
 ```text
-H:\Project\open-vision-measure\release\0.3.0\windows-x64
+release/0.3.0/windows-x64
 ```
 
 | 文件 | 大小 | SHA-256 |
@@ -109,7 +109,7 @@ AI 版 EXE 已通过三种 smoke：
 本机权重：
 
 ```text
-C:\Users\intelyes\.rembg\models\birefnet-general\birefnet-general.onnx
+%USERPROFILE%\.rembg\models\birefnet-general\birefnet-general.onnx
 ```
 
 - 模型：`birefnet-general`

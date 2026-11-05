@@ -1,0 +1,45 @@
+name: Bug report
+description: Report a reproducible application problem
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Do not include credentials, private projects, or unrelated personal data.
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Application version or git commit
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Windows version, camera model, and backend such as DirectShow or MSMF
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction steps
+      placeholder: Provide the smallest sequence that reproduces the problem
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: observed
+    attributes:
+      label: Observed behavior
+      description: Include the exact error text or smallest useful log excerpt
+    validations:
+      required: true
+  - type: textarea
+    id: checks
+    attributes:
+      label: Checks already run
+      description: Automated tests, packaged smoke tests, or real-device checks

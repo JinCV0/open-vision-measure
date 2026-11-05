@@ -9,7 +9,7 @@
 - 许可证：Apache-2.0
 - 本机版本：`0.3.0`
 - 开发分支：`feat/microscope-workflow`
-- 当前行为基线：`a7e0477`
+- 当前行为基线：`add5b26`
 - 已发布版本：`v0.2.0`
 - 技术栈：Python 3.12、PySide6、OpenCV、NumPy、PyInstaller
 - 可选 AI 运行时：rembg 2.0.86、ONNX Runtime 1.31.1、BiRefNet
@@ -49,6 +49,15 @@
 - 项目保存/加载和 CSV 导出。
 - 测量记录含来源倍率、单位、像素长度和物理长度。
 
+### 界面
+
+- Material You 风格：暖中性页面表面、白色/深色卡片、绿色主操作色。
+- 60-30-10：约 60% 页面表面、30% 卡片表面、10% 主色操作与选中态。
+- 主工作站使用左侧预览卡片和右侧可滚动工具卡片。
+- 字号固定为 12/14/18px；间距使用 4/8/12/16/24 步进。
+- 跟随系统浅色/深色模式，按钮、输入框、滑块、勾选框均有统一状态。
+- 相机区域在窄窗口下分为两行，右侧工具区独立滚动。
+
 ### AI 截图
 
 - `SubjectExtractor` 是可替换边界；`RemBgExtractor` 负责 BiRefNet 推理。
@@ -70,8 +79,8 @@ H:\Project\open-vision-measure\release\0.3.0\windows-x64
 
 | 文件 | 大小 | SHA-256 |
 | --- | ---: | --- |
-| `OpenVisionMeasure.exe` | 205,276,987 bytes | `43d0284adae81bb6918be9a9d26be4f361ff447e0eb8b41d88c34a9b0df42735` |
-| `OpenVisionMeasure-0.3.0-win64.zip` | 204,034,920 bytes | `70da8850031f53c986fd74cac1679e82c8dde5e4c2594fe05dadc62ecf8aad92` |
+| `OpenVisionMeasure.exe` | 205,288,210 bytes | `c492ac6c2d15d9c4afe667f2f426ae049d736e59b7a35c9efcb1f367798db802` |
+| `OpenVisionMeasure-0.3.0-win64.zip` | 204,045,979 bytes | `ea32b9490ff99495c88add67f134d17d4927103792cb74779cf387e2f5f7807b` |
 
 Python 包：
 
@@ -163,7 +172,7 @@ uv sync --extra dev --extra ai
 ```text
 ruff: passed
 mypy strict: passed, 32 source files
-pytest: 75 passed
+pytest: 77 passed
 wheel/sdist: passed
 PyInstaller EXE: passed
 packaged basic smoke: passed

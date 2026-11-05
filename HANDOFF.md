@@ -9,7 +9,7 @@
 - 许可证：Apache-2.0
 - 本机版本：`0.3.0`
 - 开发分支：`feat/microscope-workflow`
-- 当前行为基线：`9f8899e`
+- 当前行为基线：`09c8db6`
 - 已发布版本：`v0.2.0`
 - 技术栈：Python 3.12、PySide6、OpenCV、NumPy、PyInstaller
 - 可选 AI 运行时：rembg 2.0.86、ONNX Runtime 1.31.1、BiRefNet
@@ -60,6 +60,8 @@
 - 主界面、状态栏、文件对话框和 AI 预览使用中文文案；驱动名和格式名保留技术原文。
 - 单位支持毫米、厘米、微米、英寸和像素；微米在界面显示为“微米”，文件和 CSV 使用稳定的 `um`。
 - 截图上的微米比例尺使用 OpenCV 可渲染的 `um`，避免 `μm` 在无 Unicode 字体时变成方框。
+- 修改单位会使旧标定失效，并显示“未标定 · 请重新标定”，避免比例尺沿用旧单位。
+- 比例尺长度输入框显示当前单位；勾选比例尺时采用界面中的固定长度，不再回退到自动长度。
 
 ### AI 截图
 
@@ -82,8 +84,8 @@ H:\Project\open-vision-measure\release\0.3.0\windows-x64
 
 | 文件 | 大小 | SHA-256 |
 | --- | ---: | --- |
-| `OpenVisionMeasure.exe` | 205,287,722 bytes | `833ee88afd1ca6a96c520a31bc18eeeafb9a4e0603c76376be54bc485ef49e70` |
-| `OpenVisionMeasure-0.3.0-win64.zip` | 204,045,387 bytes | `7d5ebba471efab5654aa8c4bbfa6b252884936043336130174b05c6a5aac9dbe` |
+| `OpenVisionMeasure.exe` | 205,290,147 bytes | `bd7574afd3f1ab7a22a9064ae55124cf7581f109eee06533c8aaf1ab0a13578b` |
+| `OpenVisionMeasure-0.3.0-win64.zip` | 204,047,612 bytes | `29173bd15220b8780dc3f2caca09591040f807b3a56ff28a15f920c0753c4f9b` |
 
 Python 包：
 
@@ -175,7 +177,7 @@ uv sync --extra dev --extra ai
 ```text
 ruff: passed
 mypy strict: passed, 32 source files
-pytest: 80 passed
+pytest: 84 passed
 wheel/sdist: passed
 PyInstaller EXE: passed
 packaged basic smoke: passed

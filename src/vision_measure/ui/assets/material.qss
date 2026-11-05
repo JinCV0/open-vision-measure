@@ -58,6 +58,10 @@ QLabel[materialRole="value"] {
     font-weight: 600;
 }
 
+QLabel[materialSeverity="danger"] {
+    color: @{error};
+}
+
 QPushButton {
     min-height: 24px;
     padding: 7px 14px;

@@ -12,11 +12,11 @@ from vision_measure.inspection.scale_bar import (
     ScaleBarShape,
     ScaleBarStyle,
     build_scale_bar_layout,
-    render_scale_bar,
     scale_bar_preset,
     scale_bar_style_from_json,
     scale_bar_style_to_json,
 )
+from vision_measure.inspection.scale_bar_renderer import render_scale_bar
 
 
 def test_presets_are_valid_and_distinct() -> None:

@@ -284,7 +284,7 @@ class CalibrationPanel(QGroupBox):
     calibrate_requested = Signal()
     measure_toggled = Signal(bool)
     unit_changed = Signal(object)
-    scale_bar_length_changed = Signal(float)
+    scale_bar_settings_requested = Signal()
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__("标定", parent)
@@ -303,24 +303,20 @@ class CalibrationPanel(QGroupBox):
         self.calibrate_button = QPushButton("设置标定")
         self.scale_bar_box = QCheckBox("比例尺")
         self.scale_bar_box.setEnabled(False)
-        self.scale_bar_length_spin = QDoubleSpinBox()
-        self.scale_bar_length_spin.setRange(0.001, 1_000_000)
-        self.scale_bar_length_spin.setDecimals(4)
-        self.scale_bar_length_spin.setValue(10.0)
-        self.scale_bar_length_spin.setEnabled(False)
-        self.set_scale_bar_unit(Unit.MM)
+        self.scale_bar_settings_button = QPushButton("比例尺设置…")
+        self.scale_bar_settings_button.setEnabled(False)
+        scale_bar_row = QHBoxLayout()
+        scale_bar_row.addWidget(self.scale_bar_box)
+        scale_bar_row.addWidget(self.scale_bar_settings_button)
         form.addRow(self.measure_button)
         form.addRow("已知长度", self.reference_length_spin)
         form.addRow("单位", self.unit_combo)
-        form.addRow(self.scale_bar_box)
-        form.addRow("比例尺长度", self.scale_bar_length_spin)
+        form.addRow(scale_bar_row)
         form.addRow(self.calibrate_button)
         self.measure_button.toggled.connect(self.measure_toggled.emit)
         self.unit_combo.currentIndexChanged.connect(self._unit_changed)
         self.calibrate_button.clicked.connect(self.calibrate_requested.emit)
-        self.scale_bar_length_spin.editingFinished.connect(
-            lambda: self.scale_bar_length_changed.emit(self.scale_bar_length_spin.value())
-        )
+        self.scale_bar_settings_button.clicked.connect(self.scale_bar_settings_requested.emit)
 
     def selected_unit(self) -> Unit:
         value = self.unit_combo.currentData()
@@ -335,31 +331,19 @@ class CalibrationPanel(QGroupBox):
             self.unit_combo.blockSignals(True)
             self.unit_combo.setCurrentIndex(index)
             self.unit_combo.blockSignals(False)
-            self.set_scale_bar_unit(unit)
-
-    def set_scale_bar_unit(self, unit: Unit) -> None:
-        self.scale_bar_length_spin.setSuffix(f" {unit.display_name}")
 
     def _unit_changed(self, _index: int) -> None:
         unit = self.selected_unit()
-        self.set_scale_bar_unit(unit)
         self.unit_changed.emit(unit)
 
     def set_calibration_available(self, available: bool) -> None:
         self.scale_bar_box.setEnabled(available)
-        self.scale_bar_length_spin.setEnabled(available)
+        self.scale_bar_settings_button.setEnabled(available)
 
     def set_measure_active(self, active: bool) -> None:
         self.measure_button.blockSignals(True)
         self.measure_button.setChecked(active)
         self.measure_button.blockSignals(False)
-
-    def set_scale_bar_length(self, length: float | None) -> None:
-        if length is None:
-            return
-        self.scale_bar_length_spin.blockSignals(True)
-        self.scale_bar_length_spin.setValue(length)
-        self.scale_bar_length_spin.blockSignals(False)
 
 
 MeasurementPanel = CalibrationPanel

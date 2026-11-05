@@ -165,7 +165,7 @@ class ScaleBarSettingsForm(QWidget):
     def _build_label_group(self) -> QGroupBox:
         group, form = self._group("标签")
         self.show_label_box = QCheckBox("显示标签")
-        self.show_outline_box = QCheckBox("文字描边")
+        self.show_outline_box = QCheckBox("描边")
         self.label_position_combo = QComboBox()
         self.label_position_combo.addItem("上方", ScaleBarLabelPosition.ABOVE)
         self.label_position_combo.addItem("下方", ScaleBarLabelPosition.BELOW)
@@ -317,9 +317,9 @@ class ScaleBarSettingsForm(QWidget):
     def _update_enabled_states(self) -> None:
         shape = ScaleBarShape(str(self.shape_combo.currentData()))
         self.segments_spin.setEnabled(shape is ScaleBarShape.SEGMENTED)
-        self.show_label_box.setEnabled(True)
         self.label_position_combo.setEnabled(self.show_label_box.isChecked())
-        self.show_outline_box.setEnabled(self.show_label_box.isChecked())
+        background = ScaleBarBackground(str(self.background_combo.currentData()))
+        self.background_opacity_spin.setEnabled(background is ScaleBarBackground.TRANSLUCENT)
 
     def selected_style(self) -> ScaleBarStyle:
         return ScaleBarStyle(

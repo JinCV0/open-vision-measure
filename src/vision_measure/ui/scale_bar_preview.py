@@ -8,7 +8,8 @@ from PySide6.QtWidgets import QWidget
 
 from vision_measure.inspection.annotations import NormalizedPoint
 from vision_measure.inspection.models import Calibration, Unit
-from vision_measure.inspection.scale_bar import ScaleBarStyle, render_scale_bar
+from vision_measure.inspection.scale_bar import ScaleBarStyle
+from vision_measure.inspection.scale_bar_renderer import render_scale_bar
 from vision_measure.ui.theme import viewport_background
 
 
@@ -16,6 +17,7 @@ class ScaleBarPreview(QWidget):
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self._source = self._sample_frame()
+        self._rendered = self._source.copy()
         self._calibration = Calibration(0.1, Unit.MM)
         self._length = 10.0
         self._position = NormalizedPoint(0.04, 0.92)
@@ -30,10 +32,20 @@ class ScaleBarPreview(QWidget):
         position: NormalizedPoint,
         style: ScaleBarStyle,
     ) -> None:
+        source = self._source
         if image is not None:
             if image.ndim != 3 or image.shape[2] != 3 or image.size == 0:
                 raise ValueError("preview image must be a non-empty HxWx3 BGR image")
-            self._source = image.copy()
+            source = image.copy()
+        rendered = render_scale_bar(
+            source,
+            calibration,
+            length,
+            position,
+            style,
+        )
+        self._source = source
+        self._rendered = rendered
         self._calibration = calibration
         self._length = length
         self._position = position
@@ -45,19 +57,7 @@ class ScaleBarPreview(QWidget):
         painter = QPainter(self)
         dark = self.palette().color(QPalette.ColorRole.Window).lightness() < 128
         painter.fillRect(self.rect(), QColor(viewport_background(dark)))
-        if self._style is None:
-            return
-        try:
-            rendered = render_scale_bar(
-                self._source,
-                self._calibration,
-                self._length,
-                self._position,
-                self._style,
-            )
-        except ValueError:
-            rendered = self._source
-        rgb = np.ascontiguousarray(cv2.cvtColor(rendered, cv2.COLOR_BGR2RGB))
+        rgb = np.ascontiguousarray(cv2.cvtColor(self._rendered, cv2.COLOR_BGR2RGB))
         height, width = rgb.shape[:2]
         image = QImage(
             rgb.data,

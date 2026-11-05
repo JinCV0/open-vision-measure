@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
 
 from PySide6.QtCore import QStandardPaths
@@ -27,11 +28,10 @@ def choose_capture_path(
         selected_path = Path(selected)
         if not selected_path.suffix:
             selected_path = selected_path.with_suffix(".png")
-        updated = AppPreferences(
+        updated = replace(
+            preferences,
             screenshot_directory=selected_path.parent,
             screenshot_extension=selected_path.suffix or ".png",
-            scale_bar_enabled=preferences.scale_bar_enabled,
-            scale_bar_position=preferences.scale_bar_position,
         )
         return selected_path, updated
     return (

@@ -3,6 +3,7 @@ import pytest
 from PySide6.QtCore import QPoint, Qt
 
 from vision_measure.inspection.models import Calibration, Line, Point, Unit
+from vision_measure.inspection.scale_bar import ScaleBarPreset, scale_bar_preset
 from vision_measure.ui.viewport import ImageViewport
 
 
@@ -19,7 +20,7 @@ def test_scale_bar_can_be_dragged_on_canvas(qtbot) -> None:
     qtbot.addWidget(viewport)
     viewport.resize(1000, 800)
     viewport.set_frame(np.zeros((800, 1000, 3), dtype=np.uint8))
-    viewport.set_scale_bar(Calibration(0.1, Unit.MM), True)
+    viewport.set_scale_bar(Calibration(0.1, Unit.MM), True, length=10.0)
 
     with qtbot.waitSignal(viewport.scale_bar_moved, timeout=1000):
         qtbot.mousePress(viewport, Qt.MouseButton.LeftButton, pos=QPoint(40, 736))
@@ -28,6 +29,23 @@ def test_scale_bar_can_be_dragged_on_canvas(qtbot) -> None:
 
     assert viewport.scale_bar_position.x == pytest.approx(0.24)
     assert viewport.scale_bar_position.y == pytest.approx(0.67)
+
+
+@pytest.mark.parametrize("preset", list(ScaleBarPreset))
+def test_viewport_renders_each_scale_bar_preset(qtbot, preset) -> None:
+    viewport = ImageViewport()
+    qtbot.addWidget(viewport)
+    viewport.resize(800, 600)
+    viewport.set_frame(np.zeros((600, 800, 3), dtype=np.uint8))
+    viewport.set_scale_bar(
+        Calibration(0.1, Unit.MM),
+        True,
+        length=10.0,
+        style=scale_bar_preset(preset),
+    )
+
+    image = viewport.grab().toImage()
+    assert not image.isNull()
 
 
 def test_calibration_mode_emits_reference_line_instead_of_measurement(qtbot) -> None:

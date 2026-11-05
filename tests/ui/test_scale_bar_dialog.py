@@ -1,7 +1,7 @@
 import numpy as np
 
 from vision_measure.inspection.annotations import DEFAULT_SCALE_BAR_POSITION, NormalizedPoint
-from vision_measure.inspection.models import Unit
+from vision_measure.inspection.models import Calibration, Unit
 from vision_measure.inspection.scale_bar import (
     DEFAULT_SCALE_BAR_STYLE,
     ScaleBarPreset,
@@ -70,3 +70,20 @@ def test_reset_restores_defaults(qtbot) -> None:
     dialog.reset_button.click()
     assert dialog.selected_style() == DEFAULT_SCALE_BAR_STYLE
     assert dialog.selected_position() == NormalizedPoint(0.04, 0.92)
+
+
+def test_too_long_bar_blocks_apply_with_chinese_error(qtbot) -> None:
+    dialog = ScaleBarDialog(
+        image=np.zeros((80, 120, 3), dtype=np.uint8),
+        unit=Unit.UM,
+        length=10.0,
+        style=DEFAULT_SCALE_BAR_STYLE,
+        position=DEFAULT_SCALE_BAR_POSITION,
+        calibration=Calibration(1.0, Unit.UM),
+    )
+    qtbot.addWidget(dialog)
+
+    dialog.length_spin.setValue(1000.0)
+
+    assert dialog.validation_label.text() == "比例尺超出画面"
+    assert not dialog.apply_button.isEnabled()

@@ -1,11 +1,16 @@
 from pathlib import Path
 
 import numpy as np
+import pytest
 
 from vision_measure.inspection.annotations import NormalizedPoint
 from vision_measure.inspection.models import Calibration, Unit
 from vision_measure.inspection.scale_bar import ScaleBarPreset, scale_bar_preset
-from vision_measure.workspace.screenshot import next_capture_path, save_capture
+from vision_measure.workspace.screenshot import (
+    ScreenshotError,
+    next_capture_path,
+    save_capture,
+)
 
 
 def test_capture_sequence_uses_largest_existing_number(tmp_path: Path) -> None:
@@ -38,3 +43,14 @@ def test_capture_save_accepts_custom_scale_bar_style(tmp_path: Path) -> None:
     )
 
     assert path.is_file()
+
+
+def test_styled_capture_requires_fixed_length(tmp_path: Path) -> None:
+    with pytest.raises(ScreenshotError, match="fixed scale bar length"):
+        save_capture(
+            np.full((200, 300, 3), 90, dtype=np.uint8),
+            tmp_path / "missing-length.png",
+            calibration=Calibration(0.1, Unit.MM),
+            scale_bar_enabled=True,
+            scale_bar_style=scale_bar_preset(ScaleBarPreset.SEGMENTED),
+        )

@@ -215,6 +215,18 @@ class Workspace:
             ),
         )
 
+    def clear_current_scale_bar_length(self) -> None:
+        name = self.projects.current_magnification
+        if name is None:
+            return
+        self.projects = replace(
+            self.projects,
+            magnifications=tuple(
+                replace(profile, scale_bar_length=None) if profile.name == name else profile
+                for profile in self.projects.magnifications
+            ),
+        )
+
     def _clear_calibration(self, profile_name: str) -> None:
         self.projects = replace(
             self.projects,

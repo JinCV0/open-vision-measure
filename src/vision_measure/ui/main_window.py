@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
 
 from PySide6.QtCore import Qt, QTimer
@@ -29,6 +30,7 @@ from vision_measure.ui.panels import (
     MagnificationPanel,
     ProjectPanel,
 )
+from vision_measure.ui.scale_bar_controller import ScaleBarSettingsController
 from vision_measure.ui.screenshot_flow import choose_capture_path
 from vision_measure.ui.viewport import ImageViewport
 from vision_measure.workspace.controller import ExportError, Workspace, WorkspaceState
@@ -66,7 +68,15 @@ class MainWindow(QMainWindow):
             self.calibration_panel,
             self.viewport,
         )
+        self.scale_bar_settings = ScaleBarSettingsController(
+            self.workspace,
+            self.calibration_panel,
+            self,
+            lambda: self.preferences,
+            self._set_preferences,
+        )
         self._connect_events()
+        self.scale_bar_settings.applied.connect(lambda *_: self._sync_scale_bar_overlay())
         self.microscope.sync()
         self.image_panel.set_settings(self.workspace.project.image_settings)
         self._sync_scale_bar_overlay()
@@ -265,6 +275,7 @@ class MainWindow(QMainWindow):
                 ),
                 scale_bar_position=preferences.scale_bar_position,
                 scale_bar_length=self.workspace.current_scale_bar_length,
+                scale_bar_style=preferences.scale_bar_style,
             )
             self._set_preferences(preferences)
             self.statusBar().showMessage(f"已保存：{path}")
@@ -283,14 +294,7 @@ class MainWindow(QMainWindow):
             start,
         )
         if selected:
-            self._set_preferences(
-                AppPreferences(
-                    screenshot_directory=Path(selected),
-                    screenshot_extension=self.preferences.screenshot_extension,
-                    scale_bar_enabled=self.preferences.scale_bar_enabled,
-                    scale_bar_position=self.preferences.scale_bar_position,
-                )
-            )
+            self._set_preferences(replace(self.preferences, screenshot_directory=Path(selected)))
 
     def _save_project(self) -> None:
         path, _ = QFileDialog.getSaveFileName(
@@ -334,30 +338,22 @@ class MainWindow(QMainWindow):
         self.preferences = preferences
 
     def _scale_bar_toggled(self, enabled: bool) -> None:
-        self._set_preferences(
-            AppPreferences(
-                screenshot_directory=self.preferences.screenshot_directory,
-                screenshot_extension=self.preferences.screenshot_extension,
-                scale_bar_enabled=enabled,
-                scale_bar_position=self.preferences.scale_bar_position,
-            )
-        )
+        self._set_preferences(replace(self.preferences, scale_bar_enabled=enabled))
         self._sync_scale_bar_overlay()
 
     def _scale_bar_moved(self, position: object) -> None:
         if not isinstance(position, NormalizedPoint):
             return
-        self._set_preferences(
-            AppPreferences(
-                screenshot_directory=self.preferences.screenshot_directory,
-                screenshot_extension=self.preferences.screenshot_extension,
-                scale_bar_enabled=self.preferences.scale_bar_enabled,
-                scale_bar_position=position,
-            )
-        )
+        self._set_preferences(replace(self.preferences, scale_bar_position=position))
 
     def _sync_scale_bar_overlay(self) -> None:
         calibration = self.workspace.current_calibration
+        if (
+            calibration is not None
+            and self.preferences.scale_bar_enabled
+            and self.workspace.current_scale_bar_length is None
+        ):
+            self.workspace.set_scale_bar_length(10.0)
         self.calibration_panel.set_calibration_available(calibration is not None)
         self.calibration_panel.scale_bar_box.blockSignals(True)
         self.calibration_panel.scale_bar_box.setChecked(
@@ -369,6 +365,7 @@ class MainWindow(QMainWindow):
             self.preferences.scale_bar_enabled and calibration is not None,
             self.preferences.scale_bar_position,
             self.workspace.current_scale_bar_length,
+            self.preferences.scale_bar_style,
         )
 
     def _export_csv(self) -> None:

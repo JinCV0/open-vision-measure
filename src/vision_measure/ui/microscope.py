@@ -29,7 +29,6 @@ class MicroscopeControls(QObject):
         calibration_panel.measure_toggled.connect(self.set_measurement_mode)
         calibration_panel.unit_changed.connect(self.change_calibration_unit)
         calibration_panel.scale_bar_box.toggled.connect(self.prepare_scale_bar_length)
-        calibration_panel.scale_bar_length_changed.connect(self.set_scale_bar_length)
         viewport.calibration_finished.connect(self.finish_calibration)
         viewport.measurement_mode_changed.connect(calibration_panel.set_measure_active)
 
@@ -50,6 +49,7 @@ class MicroscopeControls(QObject):
         invalidated = calibration is not None and calibration.unit is not unit
         if invalidated:
             self.workspace.clear_current_calibration()
+            self.workspace.clear_current_scale_bar_length()
         self.sync()
         if invalidated:
             self.magnification_panel.set_calibration(
@@ -82,15 +82,9 @@ class MicroscopeControls(QObject):
         self.sync()
         self.overlay_changed.emit()
 
-    def set_scale_bar_length(self, length: float) -> None:
-        self.workspace.set_scale_bar_length(length)
-        self.overlay_changed.emit()
-
     def prepare_scale_bar_length(self, enabled: bool) -> None:
-        if enabled:
-            self.workspace.set_scale_bar_length(
-                self.calibration_panel.scale_bar_length_spin.value()
-            )
+        if enabled and self.workspace.current_scale_bar_length is None:
+            self.workspace.set_scale_bar_length(10.0)
 
     def sync(self) -> None:
         current = self.workspace.current_magnification
@@ -100,7 +94,3 @@ class MicroscopeControls(QObject):
         self.magnification_panel.set_calibration(calibration)
         if calibration is not None:
             self.calibration_panel.set_unit(calibration.unit)
-        self.calibration_panel.set_scale_bar_unit(
-            calibration.unit if calibration is not None else self.calibration_panel.selected_unit()
-        )
-        self.calibration_panel.set_scale_bar_length(self.workspace.current_scale_bar_length)

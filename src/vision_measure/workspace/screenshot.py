@@ -12,7 +12,8 @@ from vision_measure.inspection.annotations import (
     draw_scale_bar,
 )
 from vision_measure.inspection.models import Calibration
-from vision_measure.inspection.scale_bar import ScaleBarStyle, render_scale_bar
+from vision_measure.inspection.scale_bar import ScaleBarStyle
+from vision_measure.inspection.scale_bar_renderer import render_scale_bar
 from vision_measure.workspace.preferences import IMAGE_EXTENSIONS
 
 
@@ -56,7 +57,9 @@ def save_capture(
     if scale_bar_enabled:
         if calibration is None:
             raise ScreenshotError("scale bar requires calibration")
-        if scale_bar_style is not None and scale_bar_length is not None:
+        if scale_bar_style is not None:
+            if scale_bar_length is None:
+                raise ScreenshotError("fixed scale bar length is required")
             rendered = render_scale_bar(
                 image,
                 calibration,

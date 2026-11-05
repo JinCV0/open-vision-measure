@@ -115,7 +115,12 @@ class ScaleBarDialog(QDialog):
                 self.form.position(),
                 style,
             )
-        except (ScaleBarTooLong, ValueError) as exc:
+        except ScaleBarTooLong:
+            self.validation_label.setText("比例尺超出画面")
+            self.validation_label.show()
+            self.apply_button.setEnabled(False)
+            return
+        except ValueError as exc:
             self.validation_label.setText(str(exc))
             self.validation_label.show()
             self.apply_button.setEnabled(False)

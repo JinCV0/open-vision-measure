@@ -11,10 +11,18 @@ from vision_measure.inspection.annotations import (
     NormalizedPoint,
     ScaleBarGeometry,
     ScaleBarTooLong,
-    build_scale_bar,
-    build_scale_bar_fixed,
 )
 from vision_measure.inspection.models import Calibration, Line, Point
+from vision_measure.inspection.scale_bar import (
+    DEFAULT_SCALE_BAR_STYLE,
+    ScaleBarStyle,
+    build_scale_bar_layout,
+)
+from vision_measure.ui.scale_bar_painter import (
+    hit_canvas_scale_bar,
+    layout_canvas_scale_bar,
+    paint_canvas_scale_bar,
+)
 from vision_measure.ui.theme import viewport_background
 
 
@@ -32,6 +40,7 @@ class ImageViewport(QWidget):
         self._draw_current: Point | None = None
         self._scale_bar_calibration: Calibration | None = None
         self._scale_bar_length: float | None = None
+        self._scale_bar_style = DEFAULT_SCALE_BAR_STYLE
         self._scale_bar_visible = False
         self._scale_bar_position = DEFAULT_SCALE_BAR_POSITION
         self._dragging_scale_bar = False
@@ -89,15 +98,22 @@ class ImageViewport(QWidget):
     def scale_bar_position(self) -> NormalizedPoint:
         return self._scale_bar_position
 
+    @property
+    def scale_bar_style(self) -> ScaleBarStyle:
+        return self._scale_bar_style
+
     def set_scale_bar(
         self,
         calibration: Calibration | None,
         visible: bool,
         position: NormalizedPoint | None = None,
         length: float | None = None,
+        style: ScaleBarStyle | None = None,
     ) -> None:
         self._scale_bar_calibration = calibration
         self._scale_bar_length = length
+        if style is not None:
+            self._scale_bar_style = style
         self._scale_bar_visible = visible and calibration is not None
         if position is not None:
             self._scale_bar_position = position
@@ -166,21 +182,19 @@ class ImageViewport(QWidget):
         geometry = self._scale_bar_geometry()
         if geometry is None or self._image is None:
             return
+        image_scale = self._target_rect().width() / self._image.width()
         start = self._image_to_widget(geometry.start)
         end = self._image_to_widget(geometry.end)
-        tick = geometry.tick_pixels * self._target_rect().width() / self._image.width()
-        for color, width in ((QColor("#000000"), 6), (QColor("#ffffff"), 3)):
-            painter.setPen(QPen(color, width))
-            painter.drawLine(start, end)
-            painter.drawLine(
-                QPointF(start.x(), start.y() - tick),
-                QPointF(start.x(), start.y() + tick),
-            )
-            painter.drawLine(QPointF(end.x(), end.y() - tick), QPointF(end.x(), end.y() + tick))
-        text_origin = QPointF(start.x(), max(18.0, start.y() - 12))
-        for color, width in ((QColor("#000000"), 3), (QColor("#ffffff"), 1)):
-            painter.setPen(QPen(color, width))
-            painter.drawText(text_origin + QPointF(1, 1), geometry.label)
+        layout = layout_canvas_scale_bar(
+            start,
+            end,
+            geometry.label,
+            self._scale_bar_style,
+            image_scale,
+            self.height(),
+            self.font(),
+        )
+        paint_canvas_scale_bar(painter, layout, self._scale_bar_style)
 
     def mousePressEvent(self, event: QMouseEvent) -> None:
         if event.button() != Qt.MouseButton.LeftButton:
@@ -254,39 +268,34 @@ class ImageViewport(QWidget):
             return False
         start = self._image_to_widget(geometry.start)
         end = self._image_to_widget(geometry.end)
-        dx = end.x() - start.x()
-        dy = end.y() - start.y()
-        length_sq = dx * dx + dy * dy
-        if length_sq == 0:
-            return False
-        t = max(0.0, min(1.0, ((x - start.x()) * dx + (y - start.y()) * dy) / length_sq))
-        nearest_x = start.x() + t * dx
-        nearest_y = start.y() + t * dy
-        near_line = (x - nearest_x) ** 2 + (y - nearest_y) ** 2 <= 18**2
-        near_label = start.x() - 8 <= x <= end.x() + 8 and start.y() - 32 <= y <= start.y() + 16
-        return near_line or near_label
+        image_scale = self._target_rect().width() / self._image.width() if self._image else 1.0
+        layout = layout_canvas_scale_bar(
+            start,
+            end,
+            geometry.label,
+            self._scale_bar_style,
+            image_scale,
+            self.height(),
+            self.font(),
+        )
+        return hit_canvas_scale_bar(layout, x, y)
 
     def _scale_bar_geometry(self) -> ScaleBarGeometry | None:
         if (
             not self._scale_bar_visible
             or self._scale_bar_calibration is None
             or self._image is None
+            or self._scale_bar_length is None
         ):
             return None
         try:
-            if self._scale_bar_length is None:
-                return build_scale_bar(
-                    self._image.width(),
-                    self._image.height(),
-                    self._scale_bar_calibration,
-                    self._scale_bar_position,
-                )
-            return build_scale_bar_fixed(
+            return build_scale_bar_layout(
                 self._image.width(),
                 self._image.height(),
                 self._scale_bar_calibration,
                 self._scale_bar_length,
                 self._scale_bar_position,
-            )
+                self._scale_bar_style,
+            ).geometry
         except ScaleBarTooLong:
             return None

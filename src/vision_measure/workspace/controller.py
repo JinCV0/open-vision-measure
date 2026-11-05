@@ -230,6 +230,11 @@ class Workspace:
             ),
         )
 
+    def clear_current_calibration(self) -> None:
+        name = self.projects.current_magnification
+        if name is not None:
+            self._clear_calibration(name)
+
     def on_camera_changed(self, capture_config: CaptureConfig) -> None:
         name = self.projects.current_magnification
         if name is None:

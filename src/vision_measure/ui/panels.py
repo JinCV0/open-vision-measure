@@ -266,9 +266,13 @@ class MagnificationPanel(QGroupBox):
         self.selector.setEditText(name)
         self.magnification_changed.emit(name)
 
-    def set_calibration(self, calibration: Calibration | None) -> None:
+    def set_calibration(
+        self,
+        calibration: Calibration | None,
+        message: str | None = None,
+    ) -> None:
         if calibration is None:
-            self.status.setText("未标定")
+            self.status.setText(message or "未标定")
             return
         self.status.setText(
             f"{calibration.units_per_pixel:.4g} {calibration.unit.display_name}/像素"
@@ -283,6 +287,7 @@ class MagnificationPanel(QGroupBox):
 class CalibrationPanel(QGroupBox):
     calibrate_requested = Signal()
     measure_toggled = Signal(bool)
+    unit_changed = Signal(object)
     scale_bar_length_changed = Signal(float)
 
     def __init__(self, parent: QWidget | None = None) -> None:
@@ -307,6 +312,7 @@ class CalibrationPanel(QGroupBox):
         self.scale_bar_length_spin.setDecimals(4)
         self.scale_bar_length_spin.setValue(10.0)
         self.scale_bar_length_spin.setEnabled(False)
+        self.set_scale_bar_unit(Unit.MM)
         form.addRow(self.measure_button)
         form.addRow("已知长度", self.reference_length_spin)
         form.addRow("单位", self.unit_combo)
@@ -314,6 +320,7 @@ class CalibrationPanel(QGroupBox):
         form.addRow("比例尺长度", self.scale_bar_length_spin)
         form.addRow(self.calibrate_button)
         self.measure_button.toggled.connect(self.measure_toggled.emit)
+        self.unit_combo.currentIndexChanged.connect(self._unit_changed)
         self.calibrate_button.clicked.connect(self.calibrate_requested.emit)
         self.scale_bar_length_spin.editingFinished.connect(
             lambda: self.scale_bar_length_changed.emit(self.scale_bar_length_spin.value())
@@ -321,12 +328,26 @@ class CalibrationPanel(QGroupBox):
 
     def selected_unit(self) -> Unit:
         value = self.unit_combo.currentData()
-        return value if isinstance(value, Unit) else Unit.MM
+        try:
+            return Unit(value)
+        except (TypeError, ValueError):
+            return Unit.MM
 
     def set_unit(self, unit: Unit) -> None:
         index = self.unit_combo.findData(unit)
         if index >= 0:
+            self.unit_combo.blockSignals(True)
             self.unit_combo.setCurrentIndex(index)
+            self.unit_combo.blockSignals(False)
+            self.set_scale_bar_unit(unit)
+
+    def set_scale_bar_unit(self, unit: Unit) -> None:
+        self.scale_bar_length_spin.setSuffix(f" {unit.display_name}")
+
+    def _unit_changed(self, _index: int) -> None:
+        unit = self.selected_unit()
+        self.set_scale_bar_unit(unit)
+        self.unit_changed.emit(unit)
 
     def set_calibration_available(self, available: bool) -> None:
         self.scale_bar_box.setEnabled(available)

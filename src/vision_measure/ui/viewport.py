@@ -19,6 +19,7 @@ from vision_measure.inspection.models import Calibration, Line, Point
 
 class ImageViewport(QWidget):
     line_finished = Signal(object)
+    measurement_mode_changed = Signal(bool)
     calibration_finished = Signal(object)
     scale_bar_moved = Signal(object)
 
@@ -34,6 +35,7 @@ class ImageViewport(QWidget):
         self._scale_bar_position = DEFAULT_SCALE_BAR_POSITION
         self._dragging_scale_bar = False
         self._calibration_mode = False
+        self._measurement_mode = False
         self._drag_image_origin: Point | None = None
         self._drag_position_origin = DEFAULT_SCALE_BAR_POSITION
         self.setMinimumSize(480, 320)
@@ -68,6 +70,16 @@ class ImageViewport(QWidget):
 
     def set_calibration_mode(self, active: bool) -> None:
         self._calibration_mode = active
+        self._draw_start = None
+        self._draw_current = None
+        self.update()
+
+    @property
+    def measurement_mode(self) -> bool:
+        return self._measurement_mode
+
+    def set_measurement_mode(self, active: bool) -> None:
+        self._measurement_mode = active
         self._draw_start = None
         self._draw_current = None
         self.update()
@@ -177,6 +189,8 @@ class ImageViewport(QWidget):
             self._drag_image_origin = Point(*mapped)
             self._drag_position_origin = self._scale_bar_position
             return
+        if not self._calibration_mode and not self._measurement_mode:
+            return
         point = Point(*mapped)
         if self._draw_start is None:
             self._draw_start = point
@@ -191,6 +205,8 @@ class ImageViewport(QWidget):
             self._calibration_mode = False
             self.calibration_finished.emit(line)
         else:
+            self._measurement_mode = False
+            self.measurement_mode_changed.emit(False)
             self.line_finished.emit(line)
 
     def mouseMoveEvent(self, event: QMouseEvent) -> None:

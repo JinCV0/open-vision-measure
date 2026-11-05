@@ -248,6 +248,7 @@ class MagnificationPanel(QGroupBox):
 
 class CalibrationPanel(QGroupBox):
     calibrate_requested = Signal()
+    measure_toggled = Signal(bool)
     scale_bar_length_changed = Signal(float)
 
     def __init__(self, parent: QWidget | None = None) -> None:
@@ -260,6 +261,8 @@ class CalibrationPanel(QGroupBox):
         self.unit_combo = QComboBox()
         for unit in (Unit.MM, Unit.CM, Unit.IN, Unit.PX):
             self.unit_combo.addItem(unit.value, unit)
+        self.measure_button = QPushButton("Measure")
+        self.measure_button.setCheckable(True)
         self.calibrate_button = QPushButton("Set calibration")
         self.scale_bar_box = QCheckBox("Scale bar")
         self.scale_bar_box.setEnabled(False)
@@ -268,11 +271,13 @@ class CalibrationPanel(QGroupBox):
         self.scale_bar_length_spin.setDecimals(4)
         self.scale_bar_length_spin.setValue(10.0)
         self.scale_bar_length_spin.setEnabled(False)
+        form.addRow(self.measure_button)
         form.addRow("Known length", self.reference_length_spin)
         form.addRow("Unit", self.unit_combo)
         form.addRow(self.scale_bar_box)
         form.addRow("Scale bar length", self.scale_bar_length_spin)
         form.addRow(self.calibrate_button)
+        self.measure_button.toggled.connect(self.measure_toggled.emit)
         self.calibrate_button.clicked.connect(self.calibrate_requested.emit)
         self.scale_bar_length_spin.editingFinished.connect(
             lambda: self.scale_bar_length_changed.emit(self.scale_bar_length_spin.value())
@@ -290,6 +295,11 @@ class CalibrationPanel(QGroupBox):
     def set_calibration_available(self, available: bool) -> None:
         self.scale_bar_box.setEnabled(available)
         self.scale_bar_length_spin.setEnabled(available)
+
+    def set_measure_active(self, active: bool) -> None:
+        self.measure_button.blockSignals(True)
+        self.measure_button.setChecked(active)
+        self.measure_button.blockSignals(False)
 
     def set_scale_bar_length(self, length: float | None) -> None:
         if length is None:

@@ -26,11 +26,20 @@ class MicroscopeControls(QObject):
         self.viewport = viewport
         magnification_panel.magnification_changed.connect(self.switch_magnification)
         calibration_panel.calibrate_requested.connect(self.begin_calibration)
+        calibration_panel.measure_toggled.connect(self.set_measurement_mode)
         calibration_panel.scale_bar_length_changed.connect(self.set_scale_bar_length)
         viewport.calibration_finished.connect(self.finish_calibration)
+        viewport.measurement_mode_changed.connect(calibration_panel.set_measure_active)
 
     def begin_calibration(self) -> None:
+        self.viewport.set_measurement_mode(False)
+        self.calibration_panel.set_measure_active(False)
         self.viewport.set_calibration_mode(True)
+
+    def set_measurement_mode(self, active: bool) -> None:
+        if active:
+            self.viewport.set_calibration_mode(False)
+        self.viewport.set_measurement_mode(active)
 
     def finish_calibration(self, line: object) -> None:
         self.viewport.set_calibration_mode(False)
@@ -50,6 +59,8 @@ class MicroscopeControls(QObject):
 
     def switch_magnification(self, name: str) -> None:
         self.viewport.set_calibration_mode(False)
+        self.viewport.set_measurement_mode(False)
+        self.calibration_panel.set_measure_active(False)
         self.workspace.set_magnification(name)
         self.sync()
         self.overlay_changed.emit()

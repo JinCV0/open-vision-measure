@@ -54,3 +54,31 @@ def test_calibration_mode_emits_reference_line_instead_of_measurement(qtbot) -> 
     assert line.start == Point(10.0, 10.0)
     assert line.end == Point(90.0, 10.0)
     assert viewport.calibration_mode is False
+
+
+def test_plain_clicks_do_not_start_measurement(qtbot) -> None:
+    viewport = ImageViewport()
+    qtbot.addWidget(viewport)
+    viewport.resize(500, 500)
+    viewport.set_frame(np.zeros((100, 100, 3), dtype=np.uint8))
+
+    with qtbot.assertNotEmitted(viewport.line_finished):
+        qtbot.mouseClick(viewport, Qt.MouseButton.LeftButton, pos=QPoint(50, 50))
+        qtbot.mouseClick(viewport, Qt.MouseButton.LeftButton, pos=QPoint(450, 50))
+
+
+def test_measurement_mode_accepts_two_clicks_then_exits(qtbot) -> None:
+    viewport = ImageViewport()
+    qtbot.addWidget(viewport)
+    viewport.resize(500, 500)
+    viewport.set_frame(np.zeros((100, 100, 3), dtype=np.uint8))
+    viewport.set_measurement_mode(True)
+
+    with qtbot.waitSignal(viewport.line_finished, timeout=1000) as emitted:
+        qtbot.mouseClick(viewport, Qt.MouseButton.LeftButton, pos=QPoint(50, 50))
+        qtbot.mouseClick(viewport, Qt.MouseButton.LeftButton, pos=QPoint(450, 50))
+
+    line = emitted.args[0]
+    assert line.start == Point(10.0, 10.0)
+    assert line.end == Point(90.0, 10.0)
+    assert viewport.measurement_mode is False

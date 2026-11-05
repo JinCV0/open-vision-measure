@@ -9,7 +9,7 @@
 - 许可证：Apache-2.0
 - 本机版本：`0.3.0`
 - 开发分支：`feat/microscope-workflow`
-- 实现基线：`4ed2d58`（此后的交接文档更新不影响功能基线）
+- 当前行为基线：`a7e0477`
 - 已发布版本：`v0.2.0`
 - 技术栈：Python 3.12、PySide6、OpenCV、NumPy、PyInstaller
 - 可选 AI 运行时：rembg 2.0.86、ONNX Runtime 1.31.1、BiRefNet
@@ -37,6 +37,8 @@
 - 相机宽度、高度或像素格式变化时使当前倍率标定失效。
 - v1 项目迁移到 `default` 倍率，不会把旧标定套到其他倍率。
 - 新标定流程：输入已知长度 -> `Set calibration` -> 画布两次点击。
+- 测量前必须点击一次 `Measure`；画布只在测量模式下接受两个点，完成一条线后自动退出。
+- 普通浏览点击、拖标尺和标定点击不会误生成测量线。
 - 未标定倍率显示 `未标定`。
 - 标尺使用用户指定的固定物理长度，实时画布和截图共用同一几何函数。
 
@@ -68,8 +70,8 @@ H:\Project\open-vision-measure\release\0.3.0\windows-x64
 
 | 文件 | 大小 | SHA-256 |
 | --- | ---: | --- |
-| `OpenVisionMeasure.exe` | 205,277,284 bytes | `e30bac7a6651ac304de840606c7660fcdefa9ef6ff84700ae108a0f8738898e8` |
-| `OpenVisionMeasure-0.3.0-win64.zip` | 204,034,784 bytes | `298ab5b042bded17eedbecd031e795b005f869ba1159075b84f7ff5532124042` |
+| `OpenVisionMeasure.exe` | 205,276,987 bytes | `43d0284adae81bb6918be9a9d26be4f361ff447e0eb8b41d88c34a9b0df42735` |
+| `OpenVisionMeasure-0.3.0-win64.zip` | 204,034,920 bytes | `70da8850031f53c986fd74cac1679e82c8dde5e4c2594fe05dadc62ecf8aad92` |
 
 Python 包：
 
@@ -161,7 +163,7 @@ uv sync --extra dev --extra ai
 ```text
 ruff: passed
 mypy strict: passed, 32 source files
-pytest: 72 passed
+pytest: 75 passed
 wheel/sdist: passed
 PyInstaller EXE: passed
 packaged basic smoke: passed
